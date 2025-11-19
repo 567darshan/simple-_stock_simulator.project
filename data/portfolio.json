@@ -1,5 +1,12 @@
+<<<<<<< Updated upstream
 {
   "cash": 10000.0,
   "holdings": {},
   "trade_history": []
+=======
+portfolio = {
+    "cash": 100000.0,
+    "positions": {},  # "AAPL": {"qty": 10, "avg_price": 150.0}
+    "history": []     # list of transactions
+>>>>>>> Stashed changes
 }

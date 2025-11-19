@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # trading.py
 import json
 from collections import defaultdict
@@ -82,3 +83,74 @@ class Portfolio:
             price = market.stocks[sym].price
             lines.append(f"  {sym}: {qty} shares @ {price:.2f} -> {qty*price:.2f}")
         return "\n".join(lines)
+=======
+from datetime import datetime
+from services.prices import get_live_price
+
+def buy_stock(portfolio, symbol, qty):
+    price = get_live_price(symbol)
+    total_cost = price * qty
+
+    if total_cost > portfolio["cash"]:
+        print("❌ Not enough cash.")
+        return
+
+    # Update cash
+    portfolio["cash"] -= total_cost
+
+    # Update position
+    pos = portfolio["positions"].get(symbol, {"qty": 0, "avg_price": 0})
+    new_qty = pos["qty"] + qty
+    # Weighted average price
+    new_avg = (pos["qty"] * pos["avg_price"] + total_cost) / new_qty
+
+    portfolio["positions"][symbol] = {
+        "qty": new_qty,
+        "avg_price": new_avg
+    }
+
+    # Add to history
+    portfolio["history"].append({
+        "type": "BUY",
+        "symbol": symbol,
+        "qty": qty,
+        "price": price,
+        "time": datetime.now().isoformat()
+    })
+
+    print(f"✅ Bought {qty} of {symbol} @ {price:.2f}")
+
+
+def sell_stock(portfolio, symbol, qty):
+    if symbol not in portfolio["positions"]:
+        print("❌ You don't own this stock.")
+        return
+
+    pos = portfolio["positions"][symbol]
+    if qty > pos["qty"]:
+        print("❌ Not enough quantity to sell.")
+        return
+
+    price = get_live_price(symbol)
+    total_value = price * qty
+
+    # Update cash
+    portfolio["cash"] += total_value
+
+    # Update qty
+    new_qty = pos["qty"] - qty
+    if new_qty == 0:
+        del portfolio["positions"][symbol]
+    else:
+        portfolio["positions"][symbol]["qty"] = new_qty
+
+    portfolio["history"].append({
+        "type": "SELL",
+        "symbol": symbol,
+        "qty": qty,
+        "price": price,
+        "time": datetime.now().isoformat()
+    })
+
+    print(f"✅ Sold {qty} of {symbol} @ {price:.2f}")
+>>>>>>> Stashed changes

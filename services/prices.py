@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # services/prices.py
 import math
 import random
@@ -54,3 +55,15 @@ def make_default_market(start_date=None):
     for sym, price, mu, sigma in default_stocks:
         market.add_stock(Stock(sym, price, mu, sigma))
     return market
+=======
+import yfinance as yf
+
+def get_live_price(symbol: str) -> float:
+    """Return latest market price for a stock symbol."""
+    ticker = yf.Ticker(symbol)
+    data = ticker.history(period="1d")
+    if data.empty:
+        raise ValueError("Invalid symbol or no data")
+    # Get the latest closing price
+    return float(data["Close"].iloc[-1])
+>>>>>>> Stashed changes
