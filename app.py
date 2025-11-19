@@ -1,194 +1,294 @@
 # app.py
+"""
+Unified API server (works like your working api_server.py).
+- Uses port 5001 by default (match the frontend)
+- CORS enabled
+- Consistent JSON shape: {"success", "message", "data"}
+- Robust portfolio/history handlers (works with your trading.Portfolio)
+- Logging to logs/server.log
+"""
+
 from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
 from pathlib import Path
-
-from services.prices import make_default_market
+from services.prices import make_default_market, Stock
 from trading import Portfolio
-
-app = Flask(__name__)
+import datetime
+import shutil
+import logging
+from logging.handlers import RotatingFileHandler
 
 BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+DATA_DIR = BASE_DIR / "data"
+PORTFOLIO_FILE = DATA_DIR / "portfolio.json"
 
-# Single global market instance
+app = Flask(__name__, static_folder=str(STATIC_DIR))
+CORS(app)
+
+# Logging setup
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOG_DIR / "server.log"
+
+logger = logging.getLogger("stock_app")
+logger.setLevel(logging.INFO)
+handler = RotatingFileHandler(filename=str(LOG_FILE), maxBytes=3_000_000, backupCount=3)
+formatter = logging.Formatter("%(asctime)s  %(levelname)s  %(message)s")
+handler.setFormatter(formatter)
+if not logger.handlers:
+    logger.addHandler(handler)
+
+@app.before_request
+def log_request():
+    try:
+        body = request.get_data(as_text=True)
+    except Exception:
+        body = ""
+    logger.info(f"REQ {request.remote_addr} {request.method} {request.path} body={body}")
+
+# helpers
+def resp_ok(message="ok", data=None, status=200):
+    return jsonify({"success": True, "message": message, "data": data or {}}), status
+
+def resp_err(message="error", status=400, data=None):
+    return jsonify({"success": False, "message": message, "data": data or {}}), status
+
+def read_json_request(require_json=False):
+    try:
+        j = request.get_json(silent=True)
+    except Exception:
+        j = None
+    if require_json and j is None:
+        return None, resp_err("Request body must be valid JSON", 400)
+    return j or {}, None
+
+def ensure_data_dir():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# market instance
 market = make_default_market()
 
+# serve frontend
+@app.route("/", methods=["GET"])
+def root():
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return send_from_directory(str(STATIC_DIR), "index.html")
+    return resp_ok("Stock Simulator API running. Visit /api/prices", {"routes": ["/api/prices", "/api/portfolio"]})
 
-def get_portfolio():
-    return Portfolio.load()
+@app.route("/static/<path:filename>", methods=["GET"])
+def static_files(filename):
+    file_path = STATIC_DIR / filename
+    if file_path.exists():
+        return send_from_directory(str(STATIC_DIR), filename)
+    return resp_err("Not found", 404)
 
-
-# ---------- FRONTEND ----------
-
-@app.get("/")
-def index():
-    return send_from_directory(BASE_DIR / "static", "index.html")
-
-
-# ---------- API ROUTES ----------
-
-@app.get("/api/prices")
+# endpoints
+@app.route("/api/prices", methods=["GET"])
 def api_prices():
-    prices = market.list_prices()
-    return jsonify({
-        "date": str(market.date),
-        "prices": prices,
-    })
+    try:
+        stocks = market.list_prices()
+        return resp_ok("prices returned", {"date": str(market.date), "prices": stocks})
+    except Exception as e:
+        logger.exception("Failed to list prices")
+        return resp_err(f"Failed to list prices: {e}", 500)
 
-
-@app.post("/api/next")
+@app.route("/api/next", methods=["POST"])
 def api_next():
-    data = request.get_json(silent=True) or {}
-    days = int(data.get("days", 1))
-    market.simulate_days(days)
-    return jsonify({
-        "message": f"Advanced {days} day(s).",
-        "date": str(market.date),
-    })
+    j, err = read_json_request(require_json=False)
+    if err:
+        return err
+    days = j.get("days", request.args.get("days", 1))
+    try:
+        days = int(days)
+    except Exception:
+        return resp_err("days must be an integer", 400)
+    if days < 1:
+        return resp_err("days must be >= 1", 400)
+    if days > 3650:
+        return resp_err("days too large (max 3650)", 400)
+    try:
+        market.simulate_days(days)
+        logger.info(f"SIMULATE days={days} new_date={market.date}")
+        return resp_ok(f"Advanced {days} day(s)", {"date": str(market.date)})
+    except Exception as e:
+        logger.exception("Simulation failed")
+        return resp_err(f"Simulation failed: {e}", 500)
 
+@app.route("/api/addstock", methods=["POST"])
+def api_addstock():
+    j, err = read_json_request(require_json=True)
+    if err:
+        return err
+    symbol = (j.get("symbol") or "").strip().upper()
+    if not symbol:
+        return resp_err("symbol is required", 400)
+    if symbol in market.stocks:
+        return resp_err("stock already exists", 400)
+    try:
+        price = float(j.get("price"))
+    except Exception:
+        return resp_err("price must be a number", 400)
+    try:
+        mu = float(j.get("mu", 0.0005))
+        sigma = float(j.get("sigma", 0.02))
+    except Exception:
+        return resp_err("mu and sigma must be numbers", 400)
+    try:
+        stock = Stock(symbol, price, mu, sigma)
+        market.add_stock(stock)
+        logger.info(f"ADDSTOCK {symbol} price={price} mu={mu} sigma={sigma}")
+        return resp_ok("stock added", {"symbol": symbol, "price": price, "mu": mu, "sigma": sigma}, 201)
+    except Exception as e:
+        logger.exception("Failed to add stock")
+        return resp_err(f"Failed to add stock: {e}", 500)
 
-@app.get("/api/portfolio")
-def api_portfolio():
-    portfolio = get_portfolio()
-
-    holdings = []
-    for sym, qty in portfolio.holdings.items():
-        if qty <= 0:
-            continue
-        price = market.stocks[sym].price
-        holdings.append({
-            "symbol": sym,
-            "qty": qty,
-            "price": price,
-            "value": qty * price,
-        })
-
-    return jsonify({
-        "cash": portfolio.cash,
-        "net_worth": portfolio.net_worth(market),
-        "holdings": holdings,
-    })
-
-
-@app.post("/api/buy")
+@app.route("/api/buy", methods=["POST"])
 def api_buy():
-    data = request.get_json(force=True)
-    symbol = data.get("symbol", "").upper()
-    qty = int(data.get("qty", 0))
-
-    if symbol not in market.stocks:
-        return jsonify({"error": "Unknown symbol"}), 400
+    j, err = read_json_request(require_json=True)
+    if err:
+        return err
+    symbol = (j.get("symbol") or "").upper()
+    qty = j.get("qty")
+    try:
+        qty = int(qty)
+    except Exception:
+        return resp_err("qty must be an integer", 400)
     if qty <= 0:
-        return jsonify({"error": "Quantity must be positive"}), 400
-
-    portfolio = get_portfolio()
+        return resp_err("qty must be > 0", 400)
+    if symbol not in market.stocks:
+        return resp_err("unknown symbol", 400)
+    portfolio = Portfolio.load()
     price = market.stocks[symbol].price
-
     try:
         portfolio.buy(symbol, price, qty, market.date)
+        logger.info(f"BUY {symbol} qty={qty} price={price:.2f} cash_after={portfolio.cash:.2f}")
+        return resp_ok("bought", {"symbol": symbol, "qty": qty, "price": price, "cash": portfolio.cash, "net_worth": portfolio.net_worth(market)})
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        logger.exception("Buy failed")
+        return resp_err(str(e), 400)
 
-    return jsonify({
-        "message": f"Bought {qty} of {symbol} @ {price:.2f}",
-        "cash": portfolio.cash,
-        "net_worth": portfolio.net_worth(market),
-    })
-
-
-@app.post("/api/sell")
+@app.route("/api/sell", methods=["POST"])
 def api_sell():
-    data = request.get_json(force=True)
-    symbol = data.get("symbol", "").upper()
-    qty = int(data.get("qty", 0))
-
-    if symbol not in market.stocks:
-        return jsonify({"error": "Unknown symbol"}), 400
+    j, err = read_json_request(require_json=True)
+    if err:
+        return err
+    symbol = (j.get("symbol") or "").upper()
+    qty = j.get("qty")
+    try:
+        qty = int(qty)
+    except Exception:
+        return resp_err("qty must be an integer", 400)
     if qty <= 0:
-        return jsonify({"error": "Quantity must be positive"}), 400
-
-    portfolio = get_portfolio()
+        return resp_err("qty must be > 0", 400)
+    if symbol not in market.stocks:
+        return resp_err("unknown symbol", 400)
+    portfolio = Portfolio.load()
     price = market.stocks[symbol].price
-
     try:
         portfolio.sell(symbol, price, qty, market.date)
+        logger.info(f"SELL {symbol} qty={qty} price={price:.2f} cash_after={portfolio.cash:.2f}")
+        return resp_ok("sold", {"symbol": symbol, "qty": qty, "price": price, "cash": portfolio.cash, "net_worth": portfolio.net_worth(market)})
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        logger.exception("Sell failed")
+        return resp_err(str(e), 400)
 
-    return jsonify({
-        "message": f"Sold {qty} of {symbol} @ {price:.2f}",
-        "cash": portfolio.cash,
-        "net_worth": portfolio.net_worth(market),
-    })
+@app.route("/api/portfolio", methods=["GET"])
+def api_portfolio():
+    try:
+        portfolio = Portfolio.load()
+        if isinstance(portfolio, dict):
+            cash = portfolio.get("cash", 0.0)
+            holdings_map = portfolio.get("holdings", {}) or {}
+        else:
+            cash = getattr(portfolio, "cash", 0.0)
+            holdings_map = getattr(portfolio, "holdings", {}) or {}
 
+        holdings = []
+        for sym, qty in holdings_map.items():
+            try:
+                qty_num = int(qty)
+            except Exception:
+                continue
+            stock = market.stocks.get(sym)
+            price = stock.price if stock is not None else None
+            value = (price * qty_num) if (price is not None) else None
+            holdings.append({"symbol": sym, "qty": qty_num, "price": price, "value": value})
 
-@app.get("/api/history")
+        net_worth = None
+        if isinstance(portfolio, dict):
+            net_worth = portfolio.get("net_worth")
+        else:
+            try:
+                net_worth = portfolio.net_worth(market)
+            except Exception:
+                net_worth = None
+
+        if net_worth is None:
+            approx = float(cash or 0.0)
+            for h in holdings:
+                if h["value"] is not None:
+                    approx += float(h["value"])
+            net_worth = approx
+
+        return resp_ok("portfolio", {"cash": cash, "net_worth": net_worth, "holdings": holdings})
+    except Exception as e:
+        logger.exception("Failed to load portfolio")
+        return resp_err(f"Failed to load portfolio: {e}", 500)
+
+@app.route("/api/history", methods=["GET"])
 def api_history():
-    portfolio = get_portfolio()
-    return jsonify({"trades": portfolio.trade_history})
+    try:
+        portfolio = Portfolio.load()
+        if isinstance(portfolio, dict):
+            trades = portfolio.get("trade_history") or portfolio.get("trades") or []
+        else:
+            trades = getattr(portfolio, "trade_history", None) or getattr(portfolio, "trades", []) or []
+        if trades is None:
+            trades = []
+        return resp_ok("history", {"trades": trades})
+    except Exception as e:
+        logger.exception("Failed to load history")
+        return resp_err(f"Failed to load history: {e}", 500)
 
-
-@app.post("/api/reset")
-def api_reset():
-    """Reset portfolio to default state (10000 cash, no holdings)."""
-    p = Portfolio()
-    p.save()
-    return jsonify({
-        "message": "Portfolio reset to default state.",
-        "cash": p.cash,
-        "net_worth": p.net_worth(market),
-    })
-
-
-@app.get("/api/price_history/<symbol>")
+@app.route("/api/price_history/<string:symbol>", methods=["GET"])
 def api_price_history(symbol):
-    """Return date/price arrays for a given stock symbol."""
-    sym = symbol.upper()
-    if sym not in market.stocks:
-        return jsonify({"error": "Unknown symbol"}), 400
+    symbol = symbol.upper()
+    if symbol not in market.stocks:
+        return resp_err("unknown symbol", 404)
+    stock = market.stocks[symbol]
+    history = [{"date": str(d), "price": float(p)} for d, p in stock.history]
+    return resp_ok("price history", {"symbol": symbol, "history": history})
 
-    stock = market.stocks[sym]
-    dates = [str(d) for d, _ in stock.history]
-    prices = [p for _, p in stock.history]
+@app.route("/api/reset", methods=["POST"])
+def api_reset():
+    try:
+        ensure_data_dir()
+        backup_name = None
+        if PORTFOLIO_FILE.exists():
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_name = DATA_DIR / f"portfolio_backup_{ts}.json"
+            shutil.copy2(PORTFOLIO_FILE, backup_name)
+        default_port = Portfolio()
+        default_port.save()
+        global market
+        market = make_default_market()
+        logger.info(f"RESET performed; backup={backup_name}")
+        return resp_ok("reset complete", {"backup": str(backup_name) if backup_name else None})
+    except Exception as e:
+        logger.exception("Reset failed")
+        return resp_err(f"Reset failed: {e}", 500)
 
-    return jsonify({
-        "symbol": sym,
-        "dates": dates,
-        "prices": prices,
-    })
+# Generic handlers
+@app.errorhandler(404)
+def handle_404(e):
+    return resp_err("Not found", 404)
 
-
-@app.get("/api/stats")
-def api_stats():
-    """Overall summary stats: invested, profit, trade count."""
-    portfolio = get_portfolio()
-    trades = portfolio.trade_history
-
-    total_buys = 0.0
-    total_sells = 0.0
-    num_trades = len(trades)
-
-    for t in trades:
-        qty = int(t.get("qty", 0))
-        price = float(t.get("price", 0.0))
-        amount = qty * price
-        if t.get("type") == "BUY":
-            total_buys += amount
-        elif t.get("type") == "SELL":
-            total_sells += amount
-
-    starting_cash = 10000.0
-    net_worth = portfolio.net_worth(market)
-    total_profit = net_worth - starting_cash
-
-    return jsonify({
-        "total_buys": total_buys,
-        "total_sells": total_sells,
-        "net_invested": total_buys - total_sells,
-        "net_worth": net_worth,
-        "total_profit": total_profit,
-        "num_trades": num_trades,
-    })
-
+@app.errorhandler(500)
+def handle_500(e):
+    return resp_err("Server error", 500)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    print("Starting app on http://127.0.0.1:5001")
+    app.run(host="127.0.0.1", port=5001, debug=True)

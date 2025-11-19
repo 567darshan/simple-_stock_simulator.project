@@ -1,11 +1,10 @@
-# api_server.py
 """
-Improved lightweight Flask API for the stock simulator with logging.
+api.py - Improved lightweight Flask API for the stock simulator with robust portfolio/history handling.
 
-- Standardized JSON responses
-- Robust validation
-- /api/reset (backups portfolio.json)
-- Logs requests and key actions to logs/server.log (rotating)
+Drop-in replacement for your previous api_server.py; main changes:
+ - /api/portfolio and /api/history now accept Portfolio.load() returning either an object (with attributes)
+   or a plain dict (e.g. read directly from portfolio.json).
+ - small defensive checks to avoid attribute errors and to always return the JSON shape the frontend expects.
 """
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -69,12 +68,6 @@ def resp_ok(message="ok", data=None, status=200):
 
 def resp_err(message="error", status=400, data=None):
     return jsonify({"success": False, "message": message, "data": data or {}}), status
-
-def safe_int(value, default=0):
-    try:
-        return int(value)
-    except Exception:
-        return default
 
 def read_json_request(require_json=False):
     try:
@@ -224,25 +217,74 @@ def api_sell():
 
 @app.route("/api/portfolio", methods=["GET"])
 def api_portfolio():
+    """
+    Robust portfolio endpoint:
+    - Accepts Portfolio.load() returning either object-with-attributes or plain dict.
+    - Normalizes holdings into a list of {symbol, qty, price, value}.
+    - Attempts to call portfolio.net_worth(market) if available; otherwise approximates.
+    """
     try:
         portfolio = Portfolio.load()
+
+        # Normalize cash and holdings map whether portfolio is dict or object
+        if isinstance(portfolio, dict):
+            cash = portfolio.get("cash", 0.0)
+            holdings_map = portfolio.get("holdings", {}) or {}
+        else:
+            cash = getattr(portfolio, "cash", 0.0)
+            holdings_map = getattr(portfolio, "holdings", {}) or {}
+
         holdings = []
-        for sym, qty in portfolio.holdings.items():
-            if qty <= 0:
+        for sym, qty in holdings_map.items():
+            try:
+                qty_num = int(qty)
+            except Exception:
+                # skip invalid entries
                 continue
             stock = market.stocks.get(sym)
             price = stock.price if stock is not None else None
-            holdings.append({"symbol": sym, "qty": qty, "price": price, "value": (price * qty) if price is not None else None})
-        return resp_ok("portfolio", {"cash": portfolio.cash, "net_worth": portfolio.net_worth(market), "holdings": holdings})
+            value = (price * qty_num) if (price is not None) else None
+            holdings.append({"symbol": sym, "qty": qty_num, "price": price, "value": value})
+
+        # Compute net_worth: prefer portfolio.net_worth(market) when available
+        net_worth = None
+        if isinstance(portfolio, dict):
+            net_worth = portfolio.get("net_worth")
+        else:
+            try:
+                net_worth = portfolio.net_worth(market)
+            except Exception:
+                net_worth = None
+
+        # If still None, approximate: cash + sum(price * qty)
+        if net_worth is None:
+            approx = float(cash or 0.0)
+            for h in holdings:
+                if h["value"] is not None:
+                    approx += float(h["value"])
+            net_worth = approx
+
+        return resp_ok("portfolio", {"cash": cash, "net_worth": net_worth, "holdings": holdings})
     except Exception as e:
         logger.exception("Failed to load portfolio")
         return resp_err(f"Failed to load portfolio: {e}", 500)
 
 @app.route("/api/history", methods=["GET"])
 def api_history():
+    """
+    Robust history endpoint:
+    - Accepts Portfolio.load() returning either object-with-attributes or plain dict.
+    - Returns trades as a list under {"trades": [...]}
+    """
     try:
         portfolio = Portfolio.load()
-        return resp_ok("history", {"trades": portfolio.trade_history})
+        if isinstance(portfolio, dict):
+            trades = portfolio.get("trade_history") or portfolio.get("trades") or []
+        else:
+            trades = getattr(portfolio, "trade_history", None) or getattr(portfolio, "trades", []) or []
+        if trades is None:
+            trades = []
+        return resp_ok("history", {"trades": trades})
     except Exception as e:
         logger.exception("Failed to load history")
         return resp_err(f"Failed to load history: {e}", 500)

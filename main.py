@@ -37,6 +37,7 @@ def main():
             break
         if not cmd:
             continue
+
         parts = cmd.split()
         action = parts[0].lower()
 
@@ -44,17 +45,26 @@ def main():
             if action in ('quit', 'exit'):
                 print('Goodbye!')
                 break
+
             elif action in ('help', 'h', '?'):
                 print(COMMANDS)
+
             elif action in ('prices', 'list'):
                 prices = market.list_prices()
                 for s, p in prices.items():
                     print(f"{s}: {p:.2f}")
+
             elif action == 'config':
                 print(f"Simulated date: {market.date}")
                 print('Stocks:')
                 for sym, st in market.stocks.items():
-                    print(f"  {sym} start price ~ {st.history[0][1]:.2f} current {st.price:.2f} mu={st.mu} sigma={st.sigma}")
+                    # defensive: history may be empty in rare cases
+                    try:
+                        first_price = st.history[0][1] if len(st.history) > 0 else st.price
+                        print(f"  {sym} start price ~ {first_price:.2f} current {st.price:.2f} mu={st.mu} sigma={st.sigma}")
+                    except Exception:
+                        print(f"  {sym} current {st.price:.2f} mu={st.mu} sigma={st.sigma}")
+
             elif action == 'addstock':
                 # Usage: addstock SYMBOL PRICE [mu] [sigma]
                 if len(parts) < 3:
@@ -73,6 +83,7 @@ def main():
                 stock = Stock(sym, price, mu, sigma)
                 market.add_stock(stock)
                 print(f'Added stock {sym} @ {price:.2f} mu={mu} sigma={sigma}')
+
             elif action == 'next':
                 # safer parsing
                 try:
@@ -85,6 +96,7 @@ def main():
                     continue
                 market.simulate_days(n)
                 print(f"Advanced {n} day(s). New date: {market.date}")
+
             elif action == 'buy':
                 if len(parts) < 3:
                     print('Usage: buy SYMBOL QTY')
@@ -102,8 +114,13 @@ def main():
                     print('Unknown symbol')
                     continue
                 price = market.stocks[sym].price
-                portfolio.buy(sym, price, qty, market.date)
-                print(f"Bought {qty} of {sym} @ {price:.2f} -> cash {portfolio.cash:.2f}")
+                try:
+                    portfolio.buy(sym, price, qty, market.date)
+                    print(f"Bought {qty} of {sym} @ {price:.2f} -> cash {portfolio.cash:.2f}")
+                except Exception as e:
+                    # show friendly error from Portfolio (e.g. insufficient cash)
+                    print(f"Buy failed: {e}")
+
             elif action == 'sell':
                 if len(parts) < 3:
                     print('Usage: sell SYMBOL QTY')
@@ -121,16 +138,26 @@ def main():
                     print('Unknown symbol')
                     continue
                 price = market.stocks[sym].price
-                portfolio.sell(sym, price, qty, market.date)
-                print(f"Sold {qty} of {sym} @ {price:.2f} -> cash {portfolio.cash:.2f}")
+                try:
+                    portfolio.sell(sym, price, qty, market.date)
+                    print(f"Sold {qty} of {sym} @ {price:.2f} -> cash {portfolio.cash:.2f}")
+                except Exception as e:
+                    print(f"Sell failed: {e}")
+
             elif action == 'portfolio':
                 print(portfolio.summary(market))
+
             elif action == 'history':
                 if not portfolio.trade_history:
                     print('No trades yet.')
                 else:
                     for t in portfolio.trade_history:
-                        print(f"{t['date']} {t['type']} {t['symbol']} {t['qty']} @ {t['price']:.2f}")
+                        # defensive formatting
+                        try:
+                            print(f"{t.get('date','')} {t.get('type','')} {t.get('symbol','')} {t.get('qty','')} @ {float(t.get('price',0)):.2f}")
+                        except Exception:
+                            print(t)
+
             elif action == 'pricehist':
                 if len(parts) < 2:
                     print('Usage: pricehist SYMBOL')
@@ -143,15 +170,24 @@ def main():
                     print('matplotlib not available. Install matplotlib to use plotting: pip install matplotlib')
                     continue
                 stock = market.stocks[sym]
-                dates = [d for d, p in stock.history]
-                prices = [p for d, p in stock.history]
-                plt.figure()
-                plt.plot(dates, prices)
-                plt.title(f"Price history: {sym}")
-                plt.xlabel('Date')
-                plt.ylabel('Price')
-                plt.tight_layout()
-                plt.show()
+                # Convert dates to strings for plotting (safe with matplotlib)
+                dates = [str(d) for d, _ in stock.history]
+                prices = [p for _, p in stock.history]
+                if not dates or not prices:
+                    print('No price history available to plot.')
+                    continue
+                try:
+                    plt.figure()
+                    plt.plot(dates, prices)
+                    plt.title(f"Price history: {sym}")
+                    plt.xlabel('Date')
+                    plt.ylabel('Price')
+                    plt.xticks(rotation=45)
+                    plt.tight_layout()
+                    plt.show()
+                except Exception as e:
+                    print(f"Plot failed: {e}")
+
             else:
                 print("Unknown command. Type 'help' to see available commands.")
         except Exception as e:
