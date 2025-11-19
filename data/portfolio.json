@@ -1,22 +1,22 @@
 {
-  "cash": 9380.689355272274,
+  "cash": 9872.5,
   "holdings": {
-    "ABC": 5
+    "NEW": 5
   },
   "trade_history": [
     {
-      "date": "2026-01-14",
+      "date": "2025-11-19",
       "type": "BUY",
-      "symbol": "ABC",
-      "qty": 2,
-      "price": 123.86212894554517
+      "symbol": "NEW",
+      "qty": 3,
+      "price": 25.5
     },
     {
-      "date": "2026-01-14",
+      "date": "2025-11-19",
       "type": "BUY",
-      "symbol": "ABC",
-      "qty": 3,
-      "price": 123.86212894554517
+      "symbol": "NEW",
+      "qty": 2,
+      "price": 25.5
     }
   ]
 }

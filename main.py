@@ -55,10 +55,34 @@ def main():
                 print('Stocks:')
                 for sym, st in market.stocks.items():
                     print(f"  {sym} start price ~ {st.history[0][1]:.2f} current {st.price:.2f} mu={st.mu} sigma={st.sigma}")
+            elif action == 'addstock':
+                # Usage: addstock SYMBOL PRICE [mu] [sigma]
+                if len(parts) < 3:
+                    print('Usage: addstock SYMBOL PRICE [mu] [sigma]')
+                    continue
+                sym = parts[1].upper()
+                try:
+                    price = float(parts[2])
+                except ValueError:
+                    print('PRICE must be a number, e.g. 12.5')
+                    continue
+                mu = float(parts[3]) if len(parts) > 3 else 0.0005
+                sigma = float(parts[4]) if len(parts) > 4 else 0.02
+                # create and add the stock to the market
+                from services.prices import Stock
+                stock = Stock(sym, price, mu, sigma)
+                market.add_stock(stock)
+                print(f'Added stock {sym} @ {price:.2f} mu={mu} sigma={sigma}')
             elif action == 'next':
-                n = 1
-                if len(parts) > 1:
-                    n = int(parts[1])
+                # safer parsing
+                try:
+                    n = int(parts[1]) if len(parts) > 1 else 1
+                    if n < 1:
+                        print('Number of days must be >= 1')
+                        continue
+                except Exception:
+                    print("Usage: next N  (N must be a positive integer)")
+                    continue
                 market.simulate_days(n)
                 print(f"Advanced {n} day(s). New date: {market.date}")
             elif action == 'buy':
@@ -66,7 +90,14 @@ def main():
                     print('Usage: buy SYMBOL QTY')
                     continue
                 sym = parts[1].upper()
-                qty = int(parts[2])
+                try:
+                    qty = int(parts[2])
+                    if qty <= 0:
+                        print('Quantity must be a positive integer')
+                        continue
+                except ValueError:
+                    print('Usage: buy SYMBOL QTY  (QTY must be an integer)')
+                    continue
                 if sym not in market.stocks:
                     print('Unknown symbol')
                     continue
@@ -78,7 +109,14 @@ def main():
                     print('Usage: sell SYMBOL QTY')
                     continue
                 sym = parts[1].upper()
-                qty = int(parts[2])
+                try:
+                    qty = int(parts[2])
+                    if qty <= 0:
+                        print('Quantity must be a positive integer')
+                        continue
+                except ValueError:
+                    print('Usage: sell SYMBOL QTY  (QTY must be an integer)')
+                    continue
                 if sym not in market.stocks:
                     print('Unknown symbol')
                     continue
