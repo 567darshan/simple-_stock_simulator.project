@@ -64,11 +64,18 @@ class Portfolio:
         self.save()
 
     def net_worth(self, market):
+        """
+        Compute net worth. Skip symbols missing from the market instead of raising.
+        """
         value = self.cash
         for sym, qty in self.holdings.items():
             if qty <= 0:
                 continue
-            value += market.stocks[sym].price * qty
+            stock = market.stocks.get(sym)
+            if stock is None:
+                # skip unknown symbol (frontend and backend may be slightly out of sync)
+                continue
+            value += stock.price * qty
         return value
 
     def summary(self, market):
@@ -79,7 +86,11 @@ class Portfolio:
         for sym, qty in self.holdings.items():
             if qty <= 0:
                 continue
-            price = market.stocks[sym].price
+            stock = market.stocks.get(sym)
+            if stock is None:
+                lines.append(f"  {sym}: {qty} shares @ UNKNOWN (market missing)")
+                continue
+            price = stock.price
             lines.append(f"  {sym}: {qty} shares @ {price:.2f} -> {qty*price:.2f}")
         return "\n".join(lines)
 
