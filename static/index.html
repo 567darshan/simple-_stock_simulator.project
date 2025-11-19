@@ -1,0 +1,375 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Simple Stock Simulator</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/static/style.css">
+
+  <!-- Chart.js for price history -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <h1>Simple Stock Simulator</h1>
+    <div class="subtitle">
+      Simulated date: <span id="sim-date"></span>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="app-container">
+
+    <!-- NAVIGATION TABS -->
+<div class="app-nav">
+  <button class="nav-btn nav-btn-active" data-section="trade" onclick="showSection('trade')">
+    Trade
+  </button>
+  <button class="nav-btn" data-section="simulate" onclick="showSection('simulate')">
+    Simulate Days
+  </button>
+  <button class="nav-btn" data-section="market" onclick="showSection('market')">
+    Market Prices
+  </button>
+  <button class="nav-btn" data-section="portfolio" onclick="showSection('portfolio')">
+    Portfolio
+  </button>
+  <button class="nav-btn" data-section="summary" onclick="showSection('summary')">
+    Summary
+  </button>
+  <button class="nav-btn" data-section="history" onclick="showSection('history')">
+    Trade History
+  </button>
+  <button class="nav-btn" data-section="chart" onclick="showSection('chart')">
+    Price Chart
+  </button>
+</div>
+
+
+    <!-- 1. TRADE SECTION -->
+    <div class="section active" id="section-trade">
+      <h2>Trade</h2>
+      <p>Choose a stock and quantity, then buy or sell.</p>
+      <label>
+        Symbol:
+        <select id="symbol-input">
+          <option value="ABC">ABC</option>
+          <option value="XYZ">XYZ</option>
+          <option value="FOO">FOO</option>
+          <option value="BAR">BAR</option>
+        </select>
+      </label>
+      <br>
+      <label>
+        Quantity:
+        <input type="number" id="qty-input" placeholder="Qty" min="1">
+      </label>
+      <br>
+      <button onclick="buy()">Buy</button>
+      <button onclick="sell()">Sell</button>
+    </div>
+
+    <!-- 2. SIMULATE DAYS SECTION -->
+    <div class="section" id="section-simulate">
+      <h2>Simulate Days</h2>
+      <p>Move the market forward in time.</p>
+      <label>
+        Custom days:
+        <input type="number" id="days-input" value="1" min="1">
+      </label>
+      <br>
+      <button onclick="advanceDays()">Run</button>
+      <hr>
+      <p>Presets:</p>
+      <button class="secondary" onclick="advanceDaysPreset(1)">1 day</button>
+      <button class="secondary" onclick="advanceDaysPreset(7)">7 days</button>
+      <button class="secondary" onclick="advanceDaysPreset(30)">30 days</button>
+      <button class="secondary" onclick="advanceDaysPreset(365)">1 year</button>
+    </div>
+
+    <!-- 3. MARKET PRICES SECTION -->
+    <div class="section" id="section-market">
+      <h2>Market Prices</h2>
+      <table>
+        <thead>
+          <tr><th>Symbol</th><th>Price</th></tr>
+        </thead>
+        <tbody id="prices-body"></tbody>
+      </table>
+    </div>
+
+    <!-- 4. PORTFOLIO SECTION -->
+    <div class="section" id="section-portfolio">
+      <h2>Portfolio</h2>
+      <p>Cash: <span id="cash"></span></p>
+      <p>Net Worth: <span id="net-worth"></span></p>
+      <table>
+        <thead>
+          <tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Value</th></tr>
+        </thead>
+        <tbody id="holdings-body"></tbody>
+      </table>
+      <button class="secondary" onclick="resetPortfolio()">Reset Portfolio</button>
+    </div>
+
+    <!-- 5. SUMMARY SECTION -->
+    <div class="section" id="section-summary">
+      <h2>Summary Stats</h2>
+      <p>Total invested (buys): <span id="total-invested" class="stats-value"></span></p>
+      <p>Total from sells: <span id="total-sells" class="stats-value"></span></p>
+      <p>Net invested: <span id="net-invested" class="stats-value"></span></p>
+      <p>Total profit (vs 10,000): <span id="total-profit" class="stats-value"></span></p>
+      <p>Number of trades: <span id="num-trades" class="stats-value"></span></p>
+    </div>
+
+    <!-- 6. TRADE HISTORY SECTION -->
+    <div class="section" id="section-history">
+      <h2>Trade History</h2>
+      <button class="secondary" onclick="loadHistory()">Refresh History</button>
+      <ul id="history-list"></ul>
+    </div>
+
+    <!-- 7. PRICE HISTORY CHART SECTION -->
+    <div class="section" id="section-chart">
+      <h2>Price History Chart</h2>
+      <label>
+        Symbol:
+        <select id="chart-symbol" onchange="loadPriceHistory()">
+          <option value="ABC">ABC</option>
+          <option value="XYZ">XYZ</option>
+          <option value="FOO">FOO</option>
+          <option value="BAR">BAR</option>
+        </select>
+      </label>
+      <div class="chart-container">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="message"></div>
+    <div id="error"></div>
+
+  </div> <!-- end app-container -->
+
+  <script>
+    let priceChart = null;
+
+    // ---- SECTION NAVIGATION ----
+    function showSection(name) {
+      // hide all sections
+      document.querySelectorAll('.section').forEach(sec => {
+        sec.classList.remove('active');
+      });
+      // remove active from all nav buttons
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('nav-btn-active');
+      });
+      // show selected section
+      const section = document.getElementById('section-' + name);
+      if (section) {
+        section.classList.add('active');
+      }
+      // mark nav button active
+      const btn = document.querySelector(`.nav-btn[data-section="${name}"]`);
+      if (btn) {
+        btn.classList.add('nav-btn-active');
+      }
+      // scroll to top of container for better feel
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ---- API HELPERS & UI LOGIC ----
+    async function fetchJSON(url, options) {
+      const res = await fetch(url, options);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function loadPrices() {
+      try {
+        const data = await fetchJSON('/api/prices');
+        document.getElementById('sim-date').textContent = data.date;
+        const tbody = document.getElementById('prices-body');
+        tbody.innerHTML = '';
+        for (const [sym, price] of Object.entries(data.prices)) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${sym}</td><td>${price.toFixed(2)}</td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (err) { showError(err.message); }
+    }
+
+    async function loadPortfolio() {
+      try {
+        const data = await fetchJSON('/api/portfolio');
+        document.getElementById('cash').textContent = data.cash.toFixed(2);
+        document.getElementById('net-worth').textContent = data.net_worth.toFixed(2);
+        const tbody = document.getElementById('holdings-body');
+        tbody.innerHTML = '';
+        for (const h of data.holdings) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${h.symbol}</td>
+            <td>${h.qty}</td>
+            <td>${h.price.toFixed(2)}</td>
+            <td>${h.value.toFixed(2)}</td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (err) { showError(err.message); }
+    }
+
+    async function loadStats() {
+      try {
+        const data = await fetchJSON('/api/stats');
+        const fmt = (x) => x.toFixed(2);
+        document.getElementById('total-invested').textContent = fmt(data.total_buys);
+        document.getElementById('total-sells').textContent = fmt(data.total_sells);
+        document.getElementById('net-invested').textContent = fmt(data.net_invested);
+        const profitEl = document.getElementById('total-profit');
+        profitEl.textContent = fmt(data.total_profit);
+        profitEl.classList.remove('positive', 'negative');
+        if (data.total_profit > 0) profitEl.classList.add('positive');
+        else if (data.total_profit < 0) profitEl.classList.add('negative');
+        document.getElementById('num-trades').textContent = data.num_trades;
+      } catch (err) { showError(err.message); }
+    }
+
+    async function advanceDays() {
+      clearMessages();
+      const days = parseInt(document.getElementById('days-input').value || '1', 10);
+      try {
+        const data = await fetchJSON('/api/next', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ days }),
+        });
+        showMessage(data.message + ' New date: ' + data.date);
+        await loadPrices();
+        await loadPortfolio();
+        await loadStats();
+        await loadPriceHistory();
+      } catch (err) { showError(err.message); }
+    }
+
+    function advanceDaysPreset(days) {
+      document.getElementById('days-input').value = days;
+      advanceDays();
+    }
+
+    async function buy() {
+      clearMessages();
+      const symbol = document.getElementById('symbol-input').value.trim();
+      const qty = parseInt(document.getElementById('qty-input').value || '0', 10);
+      if (!symbol || qty <= 0) return showError('Enter symbol and positive quantity.');
+      try {
+        const data = await fetchJSON('/api/buy', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ symbol, qty }),
+        });
+        showMessage(data.message);
+        await loadPrices();
+        await loadPortfolio();
+        await loadStats();
+        await loadHistory();
+      } catch (err) { showError(err.message); }
+    }
+
+    async function sell() {
+      clearMessages();
+      const symbol = document.getElementById('symbol-input').value.trim();
+      const qty = parseInt(document.getElementById('qty-input').value || '0', 10);
+      if (!symbol || qty <= 0) return showError('Enter symbol and positive quantity.');
+      try {
+        const data = await fetchJSON('/api/sell', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ symbol, qty }),
+        });
+        showMessage(data.message);
+        await loadPrices();
+        await loadPortfolio();
+        await loadStats();
+        await loadHistory();
+      } catch (err) { showError(err.message); }
+    }
+
+    async function loadHistory() {
+      try {
+        const data = await fetchJSON('/api/history');
+        const ul = document.getElementById('history-list');
+        ul.innerHTML = '';
+        for (const t of data.trades) {
+          const li = document.createElement('li');
+          li.textContent = `${t.date} ${t.type} ${t.symbol} ${t.qty} @ ${t.price.toFixed(2)}`;
+          ul.appendChild(li);
+        }
+      } catch (err) { showError(err.message); }
+    }
+
+    async function resetPortfolio() {
+      clearMessages();
+      try {
+        const data = await fetchJSON('/api/reset', { method: 'POST' });
+        showMessage(data.message);
+        await loadPortfolio();
+        await loadStats();
+        await loadHistory();
+      } catch (err) { showError(err.message); }
+    }
+
+    async function loadPriceHistory() {
+      try {
+        const symbol = document.getElementById('chart-symbol').value;
+        const data = await fetchJSON(`/api/price_history/${symbol}`);
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        if (priceChart) priceChart.destroy();
+        priceChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.dates,
+            datasets: [{
+              label: `${data.symbol} price`,
+              data: data.prices,
+              borderWidth: 2,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: true }
+            },
+            scales: {
+              x: { display: true },
+              y: { display: true }
+            }
+          }
+        });
+      } catch (err) { showError(err.message); }
+    }
+
+    function showMessage(msg) { document.getElementById('message').textContent = msg; }
+    function showError(msg) { document.getElementById('error').textContent = msg; }
+    function clearMessages() {
+      document.getElementById('message').textContent = '';
+      document.getElementById('error').textContent = '';
+    }
+
+    // Initial load
+    (async function init() {
+      await loadPrices();
+      await loadPortfolio();
+      await loadStats();
+      await loadHistory();
+      await loadPriceHistory();
+      showSection('trade');   // default visible tab
+    })();
+  </script>
+</body>
+</html>

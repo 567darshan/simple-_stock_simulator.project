@@ -1,12 +1,22 @@
-<<<<<<< Updated upstream
 {
-  "cash": 10000.0,
-  "holdings": {},
-  "trade_history": []
-=======
-portfolio = {
-    "cash": 100000.0,
-    "positions": {},  # "AAPL": {"qty": 10, "avg_price": 150.0}
-    "history": []     # list of transactions
->>>>>>> Stashed changes
+  "cash": 9380.689355272274,
+  "holdings": {
+    "ABC": 5
+  },
+  "trade_history": [
+    {
+      "date": "2026-01-14",
+      "type": "BUY",
+      "symbol": "ABC",
+      "qty": 2,
+      "price": 123.86212894554517
+    },
+    {
+      "date": "2026-01-14",
+      "type": "BUY",
+      "symbol": "ABC",
+      "qty": 3,
+      "price": 123.86212894554517
+    }
+  ]
 }
