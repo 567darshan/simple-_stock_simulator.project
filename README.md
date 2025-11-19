@@ -1,1 +1,1 @@
-# simple-_stock_simulator.project
+# simple_stock_simulator.project
