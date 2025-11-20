@@ -7,557 +7,18 @@
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23007bff'/%3E%3C/svg%3E">
 
-  <!-- Old stylesheet (optional) -->
+  <!-- Stylesheet: keep /static path if your app serves it there -->
   <link rel="stylesheet" href="/static/style.css">
 
   <!-- Chart.js for price history -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- NEW DESIGN CSS -->
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      min-height: 100vh;
-      background: radial-gradient(circle at top left, #6a11cb 0, #2575fc 40%, #0f172a 100%);
-      color: #f9fafb;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    h1, h2, h3 {
-      margin: 0;
-    }
-
-    /* HEADER */
-
-    .app-header {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      padding: 20px 16px 0;
-    }
-
-    .header-top-row {
-      width: 100%;
-      max-width: 1200px;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
-      border-radius: 24px;
-      padding: 18px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      backdrop-filter: blur(18px);
-      box-shadow: 0 18px 45px rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.4);
-    }
-
-    .header-top-row h1 {
-      font-size: 28px;
-      letter-spacing: 0.5px;
-      font-weight: 700;
-      background: linear-gradient(120deg, #f9fafb, #e0f2fe, #bfdbfe);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
-    }
-
-    .subtitle {
-      margin-top: 4px;
-      font-size: 14px;
-      color: rgba(15,23,42,0.9);
-      font-weight: 500;
-    }
-
-    .subtitle span {
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .header-controls {
-      display: flex;
-      gap: 18px;
-      align-items: center;
-    }
-
-    .user-bar label,
-    .mode-bar .mode-label {
-      font-size: 13px;
-      font-weight: 500;
-      margin-right: 6px;
-    }
-
-    .user-bar input {
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: none;
-      outline: none;
-      font-size: 13px;
-      min-width: 150px;
-      margin-right: 6px;
-    }
-
-    #login-btn {
-      padding: 6px 14px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #2563eb, #22c55e);
-      color: #fff;
-      box-shadow: 0 0 12px rgba(37,99,235,0.7);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    #login-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 0 18px rgba(34,197,94,0.85);
-    }
-
-    .current-user-label {
-      display: block;
-      font-size: 12px;
-      margin-top: 4px;
-      opacity: 0.9;
-    }
-
-    .user-bar {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .user-bar > div {
-      display: flex;
-      align-items: center;
-    }
-
-    /* MODE TOGGLE */
-
-    .mode-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(15,23,42,0.35);
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.5);
-    }
-
-    .mode-label {
-      font-size: 12px;
-      color: #e5e7eb;
-      opacity: 0.9;
-    }
-
-    .mode-pill {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      padding: 2px;
-      cursor: pointer;
-    }
-
-    .mode-pill input {
-      display: none; /* hide original radio */
-    }
-
-    .mode-pill span {
-      display: inline-block;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #e5e7eb;
-      background: transparent;
-      transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
-      white-space: nowrap;
-    }
-
-    .mode-pill input:checked + span {
-      background: linear-gradient(135deg, #10b981, #22c55e);
-      color: #ffffff;
-      box-shadow: 0 0 10px rgba(16,185,129,0.9);
-      transform: translateY(-1px);
-    }
-
-    /* MAIN CONTAINER */
-
-    .app-container {
-      width: 100%;
-      max-width: 1200px;
-      margin: 18px auto 32px;
-      padding: 20px 24px 28px;
-      background: linear-gradient(135deg, rgba(15,23,42,0.97), rgba(15,23,42,0.9));
-      border-radius: 26px;
-      box-shadow: 0 22px 60px rgba(15,23,42,0.9);
-      border: 1px solid rgba(148,163,184,0.45);
-      backdrop-filter: blur(18px);
-    }
-
-    /* NAVIGATION */
-
-    .app-nav {
-      display: flex;
-      overflow-x: auto;
-      padding-bottom: 6px;
-      margin-bottom: 18px;
-      gap: 10px;
-    }
-
-    .nav-btn {
-      border: none;
-      border-radius: 999px;
-      padding: 8px 18px;
-      background: linear-gradient(135deg, #4b5563, #111827);
-      color: #ffffff;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 8px 18px rgba(0,0,0,0.4);
-      transition: background 0.25s, transform 0.2s, box-shadow 0.25s;
-      white-space: nowrap;
-    }
-
-    .nav-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 26px rgba(0,0,0,0.7);
-    }
-
-    .nav-btn-active {
-      background: linear-gradient(135deg, #22c55e, #3b82f6);
-      color: #ffffff;
-      box-shadow: 0 0 18px rgba(59,130,246,0.9);
-      transform: translateY(-2px);
-    }
-
-    .nav-icon {
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .nav-label {
-      letter-spacing: 0.3px;
-    }
-
-    /* SECTIONS / CARDS */
-
-    .section {
-      display: none;
-      background: radial-gradient(circle at top left, rgba(30,64,175,0.6), rgba(15,23,42,0.95));
-      border-radius: 22px;
-      padding: 18px 20px 20px;
-      box-shadow: inset 0 0 0 1px rgba(148,163,184,0.4);
-      margin-bottom: 16px;
-    }
-
-    .section.active {
-      display: block;
-      animation: fadeInSection 0.35s ease-out;
-    }
-
-    @keyframes fadeInSection {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .section h2 {
-      font-size: 20px;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #e5e7eb;
-    }
-
-    .section h2::before {
-      content: "";
-      width: 4px;
-      height: 20px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #22c55e, #3b82f6);
-    }
-
-    .section p {
-      font-size: 13px;
-      color: #cbd5f5;
-      margin-top: 0;
-      margin-bottom: 10px;
-    }
-
-    .mode-hint {
-      font-size: 12px;
-      opacity: 0.8;
-    }
-
-    /* FORM ELEMENTS */
-
-    label {
-      font-size: 14px;
-      display: inline-flex;
-      align-items: center;
-      margin: 6px 0;
-      gap: 6px;
-      color: #e5e7eb;
-    }
-
-    select,
-    input[type="number"],
-    input[type="text"] {
-      padding: 7px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.8);
-      background: rgba(15,23,42,0.8);
-      color: #e5e7eb;
-      font-size: 13px;
-      outline: none;
-      min-width: 120px;
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-    }
-
-    select:focus,
-    input[type="number"]:focus,
-    input[type="text"]:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 1px rgba(56,189,248,0.8);
-      background: rgba(15,23,42,0.95);
-    }
-
-    /* BUTTONS */
-
-    button {
-      font-family: inherit;
-    }
-
-    .primary-btn {
-      padding: 8px 22px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      color: #f9fafb;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      box-shadow: 0 0 12px rgba(34,197,94,0.85);
-      margin-top: 10px;
-      margin-right: 8px;
-      transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
-    }
-
-    .primary-btn:hover {
-      transform: translateY(-1px) scale(1.03);
-      box-shadow: 0 0 18px rgba(34,197,94,1);
-      filter: brightness(1.05);
-    }
-
-    .secondary {
-      padding: 6px 16px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.7);
-      background: rgba(15,23,42,0.9);
-      color: #e5e7eb;
-      font-size: 12px;
-      cursor: pointer;
-      margin: 4px 6px 4px 0;
-      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-    }
-
-    .secondary:hover {
-      background: rgba(30,64,175,0.85);
-      transform: translateY(-1px);
-      box-shadow: 0 0 10px rgba(59,130,246,0.7);
-    }
-
-    /* SPECIAL BUY / SELL GLOW */
-
-    .buy-btn {
-      background: radial-gradient(circle at top left, #22c55e, #16a34a);
-      box-shadow: 0 0 14px rgba(34,197,94,0.9), 0 0 32px rgba(22,163,74,0.85);
-    }
-
-    .buy-btn:hover {
-      box-shadow: 0 0 20px rgba(34,197,94,1), 0 0 40px rgba(22,163,74,1);
-    }
-
-    .sell-btn {
-      background: radial-gradient(circle at top left, #f97316, #ef4444);
-      box-shadow: 0 0 14px rgba(248,113,113,0.9), 0 0 32px rgba(249,115,22,0.9);
-    }
-
-    .sell-btn:hover {
-      box-shadow: 0 0 20px rgba(248,113,113,1), 0 0 42px rgba(249,115,22,1);
-    }
-
-    /* TABLES */
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-      font-size: 13px;
-      overflow: hidden;
-      border-radius: 16px;
-      background: rgba(15,23,42,0.95);
-      box-shadow: 0 12px 28px rgba(15,23,42,0.9);
-    }
-
-    thead {
-      background: linear-gradient(135deg, rgba(59,130,246,0.9), rgba(37,99,235,0.9));
-    }
-
-    thead th {
-      text-align: left;
-      padding: 10px 10px;
-      font-weight: 600;
-      color: #f9fafb;
-      border-bottom: 1px solid rgba(15,23,42,0.9);
-    }
-
-    tbody tr:nth-child(even) {
-      background: rgba(15,23,42,0.9);
-    }
-
-    tbody tr:nth-child(odd) {
-      background: rgba(15,23,42,0.8);
-    }
-
-    tbody td {
-      padding: 8px 10px;
-      border-bottom: 1px solid rgba(30,64,175,0.6);
-    }
-
-    tbody tr:hover {
-      background: rgba(30,64,175,0.9);
-    }
-
-    .history-wrapper {
-      max-height: 260px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    /* STATS COLORS */
-
-    .stats-value {
-      font-weight: 600;
-      color: #e5e7eb;
-    }
-
-    .positive {
-      color: #22c55e;
-    }
-
-    .negative {
-      color: #f97316;
-    }
-
-    /* MESSAGE BANNERS */
-
-    #message,
-    #error {
-      margin-bottom: 12px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      display: none;
-    }
-
-    #message {
-      background: rgba(34,197,94,0.15);
-      border: 1px solid rgba(34,197,94,0.8);
-      color: #bbf7d0;
-    }
-
-    #error {
-      background: rgba(248,113,113,0.15);
-      border: 1px solid rgba(248,113,113,0.9);
-      color: #fecaca;
-    }
-
-    /* CHART */
-
-    .chart-container {
-      margin-top: 12px;
-      background: rgba(15,23,42,0.95);
-      border-radius: 18px;
-      padding: 12px;
-      box-shadow: 0 12px 30px rgba(15,23,42,0.9);
-      border: 1px solid rgba(30,64,175,0.75);
-    }
-
-    canvas {
-      max-height: 320px;
-    }
-
-    /* TOAST PLACEHOLDER */
-
-    #toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      pointer-events: none;
-      z-index: 30;
-    }
-
-    /* RESPONSIVE */
-
-    @media (max-width: 900px) {
-      .header-top-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-      }
-      .header-controls {
-        width: 100%;
-        justify-content: space-between;
-      }
-      .user-bar {
-        width: 55%;
-      }
-      .mode-bar {
-        flex-wrap: wrap;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .app-container {
-        padding: 16px 14px 24px;
-        border-radius: 20px;
-      }
-      .header-top-row {
-        padding: 14px 16px;
-      }
-      .user-bar {
-        width: 100%;
-      }
-      .mode-bar {
-        width: 100%;
-        justify-content: space-between;
-      }
-      .section {
-        padding: 14px 14px 16px;
-      }
-    }
-  </style>
 </head>
 <body>
 
   <!-- HEADER -->
   <div class="app-header">
     <div class="header-top-row">
-      <div>
+      <div class="title-block">
         <h1>Simple Stock Simulator</h1>
         <div class="subtitle">
           Simulated date: <span id="sim-date"></span>
@@ -568,7 +29,7 @@
       <div class="header-controls">
         <!-- Login / User select -->
         <div class="user-bar">
-          <div>
+          <div class="user-input-row">
             <label for="username-input">User:</label>
             <input
               id="username-input"
@@ -638,8 +99,8 @@
     </div>
 
     <!-- GLOBAL MESSAGES -->
-    <div id="message"></div>
-    <div id="error"></div>
+    <div id="message" class="msg success"></div>
+    <div id="error" class="msg error"></div>
 
     <!-- 1. TRADE SECTION -->
     <div class="section active" id="section-trade">
@@ -660,8 +121,10 @@
         <input type="number" id="qty-input" placeholder="Qty" min="1" value="1">
       </label>
       <br>
-      <button class="primary-btn buy-btn" onclick="buy()">BUY</button>
-      <button class="primary-btn sell-btn" onclick="sell()">SELL</button>
+      <div class="action-row">
+        <button class="primary-btn buy-btn" onclick="buy()">BUY</button>
+        <button class="primary-btn sell-btn" onclick="sell()">SELL</button>
+      </div>
     </div>
 
     <!-- 2. SIMULATE DAYS SECTION -->
@@ -676,10 +139,12 @@
       <button class="primary-btn" onclick="advanceDays()">Run</button>
       <hr>
       <p>Quick presets:</p>
-      <button class="secondary" onclick="advanceDaysPreset(1)">1 day</button>
-      <button class="secondary" onclick="advanceDaysPreset(7)">7 days</button>
-      <button class="secondary" onclick="advanceDaysPreset(30)">30 days</button>
-      <button class="secondary" onclick="advanceDaysPreset(365)">1 year</button>
+      <div class="preset-row">
+        <button class="secondary" onclick="advanceDaysPreset(1)">1 day</button>
+        <button class="secondary" onclick="advanceDaysPreset(7)">7 days</button>
+        <button class="secondary" onclick="advanceDaysPreset(30)">30 days</button>
+        <button class="secondary" onclick="advanceDaysPreset(365)">1 year</button>
+      </div>
     </div>
 
     <!-- 3. MARKET PRICES SECTION -->
@@ -701,8 +166,8 @@
     <div class="section" id="section-portfolio">
       <h2>Portfolio</h2>
       <p>Overview of your cash and holdings for the current user.</p>
-      <p>Cash: <span id="cash"></span></p>
-      <p>Net Worth: <span id="net-worth"></span></p>
+      <p>Cash: <span id="cash">-</span></p>
+      <p>Net Worth: <span id="net-worth">-</span></p>
       <button class="secondary" onclick="resetPortfolio()">Reset Portfolio</button>
       <table>
         <thead>
@@ -715,11 +180,11 @@
     <!-- 5. SUMMARY SECTION -->
     <div class="section" id="section-summary">
       <h2>Summary Stats</h2>
-      <p>Total invested (buys): <span id="total-invested" class="stats-value"></span></p>
-      <p>Total from sells: <span id="total-sells" class="stats-value"></span></p>
-      <p>Net invested: <span id="net-invested" class="stats-value"></span></p>
-      <p>Total profit (vs 10,000): <span id="total-profit" class="stats-value"></span></p>
-      <p>Number of trades: <span id="num-trades" class="stats-value"></span></p>
+      <p>Total invested (buys): <span id="total-invested" class="stats-value">-</span></p>
+      <p>Total from sells: <span id="total-sells" class="stats-value">-</span></p>
+      <p>Net invested: <span id="net-invested" class="stats-value">-</span></p>
+      <p>Total profit (vs 10,000): <span id="total-profit" class="stats-value">-</span></p>
+      <p>Number of trades: <span id="num-trades" class="stats-value">-</span></p>
     </div>
 
     <!-- 6. TRADE HISTORY SECTION -->
@@ -766,7 +231,7 @@
 
   </div> <!-- end app-container -->
 
-  <!-- JS (unchanged logic) -->
+  <!-- JS (UNCHANGED LOGIC + checkLiveEndpoint) -->
   <script>
     let priceChart = null;
 
@@ -838,6 +303,35 @@
     async function fetchUserJSON(path, options) {
       const url = withUser(path);
       return fetchJSON(url, options);
+    }
+
+    // ---- NEW: checkLiveEndpoint (Option B) ----
+    async function checkLiveEndpoint() {
+      try {
+        // include ?user= if currentUser set, otherwise try without user
+        const url = currentUser ? withUser('/api/prices_live') : '/api/prices_live';
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) throw new Error('live endpoint not available');
+        console.info('Live prices endpoint available.');
+      } catch (e) {
+        // Disable the live radio input(s) and visually dim the label
+        document.querySelectorAll('input[name="mode"][value="live"]').forEach(inp => {
+          inp.disabled = true;
+          const lbl = inp.nextElementSibling;
+          if (lbl && lbl.style) {
+            lbl.style.opacity = '0.45';
+            lbl.style.cursor = 'not-allowed';
+          }
+          if (inp.checked) {
+            const sim = document.querySelector('input[name="mode"][value="simulation"]');
+            if (sim) {
+              sim.checked = true;
+              setMode('simulation');
+            }
+          }
+        });
+        console.info('Live prices endpoint not found — Live mode disabled.');
+      }
     }
 
     // ---- LOAD FUNCTIONS ----
@@ -1131,6 +625,9 @@
           console.error(err);
         });
       }
+
+      // CHECK LIVE ENDPOINT (Option B) - called after savedUser restoration
+      checkLiveEndpoint();
 
       // Default section
       showSection('trade');
