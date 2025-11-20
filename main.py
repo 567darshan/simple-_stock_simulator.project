@@ -1,4 +1,15 @@
 # main.py
+"""
+CLI stock market simulator.
+
+Uses:
+ - services.prices.make_default_market() for simulated prices
+ - trading.Portfolio for portfolio persistence
+
+Run with:
+    python main.py
+"""
+
 from services.prices import make_default_market
 from trading import Portfolio
 
@@ -17,13 +28,16 @@ Available commands:
   portfolio              - show portfolio summary
   history                - show trade history
   pricehist SYMBOL       - show price history plot for SYMBOL (requires matplotlib)
+  addstock SYMBOL PRICE [mu] [sigma]
+                         - add a new stock to the market
   config                 - show simulated date and available stocks
   help                   - show this help
   quit / exit            - exit the simulator
 '''
 
+
 def main():
-    print('Simple stock market simulator (project layout)')
+    print('Simple stock market simulator (CLI)')
     market = make_default_market()
     portfolio = Portfolio.load()
 
@@ -35,6 +49,7 @@ def main():
         except (EOFError, KeyboardInterrupt):
             print('\nExiting simulator.')
             break
+
         if not cmd:
             continue
 
@@ -42,6 +57,7 @@ def main():
         action = parts[0].lower()
 
         try:
+            # ---- EXIT / HELP ----
             if action in ('quit', 'exit'):
                 print('Goodbye!')
                 break
@@ -49,43 +65,60 @@ def main():
             elif action in ('help', 'h', '?'):
                 print(COMMANDS)
 
+            # ---- PRICES ----
             elif action in ('prices', 'list'):
                 prices = market.list_prices()
                 for s, p in prices.items():
                     print(f"{s}: {p:.2f}")
 
+            # ---- CONFIG ----
             elif action == 'config':
                 print(f"Simulated date: {market.date}")
                 print('Stocks:')
                 for sym, st in market.stocks.items():
-                    # defensive: history may be empty in rare cases
+                    # defensive: history may be empty
                     try:
                         first_price = st.history[0][1] if len(st.history) > 0 else st.price
-                        print(f"  {sym} start price ~ {first_price:.2f} current {st.price:.2f} mu={st.mu} sigma={st.sigma}")
+                        print(
+                            f"  {sym} start ~ {first_price:.2f} "
+                            f"current {st.price:.2f} mu={st.mu} sigma={st.sigma}"
+                        )
                     except Exception:
                         print(f"  {sym} current {st.price:.2f} mu={st.mu} sigma={st.sigma}")
 
+            # ---- ADD STOCK ----
             elif action == 'addstock':
                 # Usage: addstock SYMBOL PRICE [mu] [sigma]
                 if len(parts) < 3:
                     print('Usage: addstock SYMBOL PRICE [mu] [sigma]')
                     continue
+
                 sym = parts[1].upper()
                 try:
                     price = float(parts[2])
                 except ValueError:
                     print('PRICE must be a number, e.g. 12.5')
                     continue
-                mu = float(parts[3]) if len(parts) > 3 else 0.0005
-                sigma = float(parts[4]) if len(parts) > 4 else 0.02
+
+                try:
+                    mu = float(parts[3]) if len(parts) > 3 else 0.0005
+                    sigma = float(parts[4]) if len(parts) > 4 else 0.02
+                except ValueError:
+                    print('mu and sigma must be numbers')
+                    continue
+
                 # create and add the stock to the market
                 from services.prices import Stock
+                if sym in market.stocks:
+                    print(f'Stock {sym} already exists.')
+                    continue
+
                 stock = Stock(sym, price, mu, sigma)
                 market.add_stock(stock)
                 print(f'Added stock {sym} @ {price:.2f} mu={mu} sigma={sigma}')
 
+            # ---- SIMULATE DAYS ----
             elif action == 'next':
-                # safer parsing
                 try:
                     n = int(parts[1]) if len(parts) > 1 else 1
                     if n < 1:
@@ -94,14 +127,18 @@ def main():
                 except Exception:
                     print("Usage: next N  (N must be a positive integer)")
                     continue
+
                 market.simulate_days(n)
                 print(f"Advanced {n} day(s). New date: {market.date}")
 
+            # ---- BUY ----
             elif action == 'buy':
                 if len(parts) < 3:
                     print('Usage: buy SYMBOL QTY')
                     continue
+
                 sym = parts[1].upper()
+
                 try:
                     qty = int(parts[2])
                     if qty <= 0:
@@ -110,22 +147,27 @@ def main():
                 except ValueError:
                     print('Usage: buy SYMBOL QTY  (QTY must be an integer)')
                     continue
+
                 if sym not in market.stocks:
                     print('Unknown symbol')
                     continue
+
                 price = market.stocks[sym].price
                 try:
                     portfolio.buy(sym, price, qty, market.date)
                     print(f"Bought {qty} of {sym} @ {price:.2f} -> cash {portfolio.cash:.2f}")
                 except Exception as e:
-                    # show friendly error from Portfolio (e.g. insufficient cash)
+                    # friendly error from Portfolio (e.g. insufficient cash)
                     print(f"Buy failed: {e}")
 
+            # ---- SELL ----
             elif action == 'sell':
                 if len(parts) < 3:
                     print('Usage: sell SYMBOL QTY')
                     continue
+
                 sym = parts[1].upper()
+
                 try:
                     qty = int(parts[2])
                     if qty <= 0:
@@ -134,9 +176,11 @@ def main():
                 except ValueError:
                     print('Usage: sell SYMBOL QTY  (QTY must be an integer)')
                     continue
+
                 if sym not in market.stocks:
                     print('Unknown symbol')
                     continue
+
                 price = market.stocks[sym].price
                 try:
                     portfolio.sell(sym, price, qty, market.date)
@@ -144,38 +188,53 @@ def main():
                 except Exception as e:
                     print(f"Sell failed: {e}")
 
+            # ---- PORTFOLIO ----
             elif action == 'portfolio':
-                print(portfolio.summary(market))
+                try:
+                    print(portfolio.summary(market))
+                except Exception as e:
+                    print(f"Could not show portfolio summary: {e}")
 
+            # ---- HISTORY ----
             elif action == 'history':
-                if not portfolio.trade_history:
+                if not getattr(portfolio, "trade_history", None):
                     print('No trades yet.')
                 else:
                     for t in portfolio.trade_history:
                         # defensive formatting
                         try:
-                            print(f"{t.get('date','')} {t.get('type','')} {t.get('symbol','')} {t.get('qty','')} @ {float(t.get('price',0)):.2f}")
+                            print(
+                                f"{t.get('date','')} {t.get('type','')} "
+                                f"{t.get('symbol','')} {t.get('qty','')} "
+                                f"@ {float(t.get('price',0)):.2f}"
+                            )
                         except Exception:
                             print(t)
 
+            # ---- PRICE HISTORY PLOT ----
             elif action == 'pricehist':
                 if len(parts) < 2:
                     print('Usage: pricehist SYMBOL')
                     continue
+
                 sym = parts[1].upper()
                 if sym not in market.stocks:
                     print('Unknown symbol')
                     continue
+
                 if plt is None:
-                    print('matplotlib not available. Install matplotlib to use plotting: pip install matplotlib')
+                    print('matplotlib not available. Install matplotlib:')
+                    print('  pip install matplotlib')
                     continue
+
                 stock = market.stocks[sym]
-                # Convert dates to strings for plotting (safe with matplotlib)
                 dates = [str(d) for d, _ in stock.history]
                 prices = [p for _, p in stock.history]
+
                 if not dates or not prices:
                     print('No price history available to plot.')
                     continue
+
                 try:
                     plt.figure()
                     plt.plot(dates, prices)
@@ -188,10 +247,13 @@ def main():
                 except Exception as e:
                     print(f"Plot failed: {e}")
 
+            # ---- UNKNOWN COMMAND ----
             else:
                 print("Unknown command. Type 'help' to see available commands.")
+
         except Exception as e:
             print(f"Error: {e}")
+
 
 if __name__ == '__main__':
     main()

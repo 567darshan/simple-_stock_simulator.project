@@ -4,29 +4,12 @@
   <meta charset="utf-8">
   <title>Simple Stock Simulator</title>
 
-  <!-- CSS -->
+  <!-- Favicon & main stylesheet -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23007bff'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/style.css">
 
   <!-- Chart.js for price history -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    /* minimal inline styles so UI looks OK even if style.css missing */
-    body { font-family: Arial, sans-serif; margin: 12px; }
-    .app-header { display:flex; justify-content:space-between; align-items:center; }
-    .app-container { margin-top:12px; }
-    .app-nav { margin-bottom:12px; }
-    .nav-btn { margin-right:6px; padding:6px 10px; cursor:pointer; }
-    .nav-btn-active { background:#007bff; color:#fff; }
-    .section { display:none; padding:8px 0; }
-    .section.active { display:block; }
-    table { width:100%; border-collapse: collapse; margin-top:8px; }
-    th,td { text-align:left; padding:6px; border:1px solid #ddd; }
-    .secondary { margin-right:6px; padding:6px 10px; }
-    #message { color: green; margin-top:8px; display:none; }
-    #error { color: red; margin-top:8px; display:none; }
-    .chart-container { height:320px; width:100%; max-width:900px; }
-  </style>
 </head>
 <body>
 
@@ -41,31 +24,47 @@
   <!-- MAIN CONTENT -->
   <div class="app-container">
 
-    <!-- NAVIGATION TABS -->
-<div class="app-nav">
-  <button class="nav-btn nav-btn-active" data-section="trade" onclick="showSection('trade')">
-    Trade
-  </button>
-  <button class="nav-btn" data-section="simulate" onclick="showSection('simulate')">
-    Simulate Days
-  </button>
-  <button class="nav-btn" data-section="market" onclick="showSection('market')">
-    Market Prices
-  </button>
-  <button class="nav-btn" data-section="portfolio" onclick="showSection('portfolio')">
-    Portfolio
-  </button>
-  <button class="nav-btn" data-section="summary" onclick="showSection('summary')">
-    Summary
-  </button>
-  <button class="nav-btn" data-section="history" onclick="showSection('history')">
-    Trade History
-  </button>
-  <button class="nav-btn" data-section="chart" onclick="showSection('chart')">
-    Price Chart
-  </button>
-</div>
+    <!-- NAVIGATION TABS (icons + labels to match your CSS) -->
+    <div class="app-nav">
+      <button class="nav-btn nav-btn-active" data-section="trade" onclick="showSection('trade')">
+        <div class="nav-icon">✅</div>
+        <div class="nav-label">Trade</div>
+      </button>
 
+      <button class="nav-btn" data-section="simulate" onclick="showSection('simulate')">
+        <div class="nav-icon">⏭️</div>
+        <div class="nav-label">Simulate</div>
+      </button>
+
+      <button class="nav-btn" data-section="market" onclick="showSection('market')">
+        <div class="nav-icon">📈</div>
+        <div class="nav-label">Market</div>
+      </button>
+
+      <button class="nav-btn" data-section="portfolio" onclick="showSection('portfolio')">
+        <div class="nav-icon">💼</div>
+        <div class="nav-label">Portfolio</div>
+      </button>
+
+      <button class="nav-btn" data-section="summary" onclick="showSection('summary')">
+        <div class="nav-icon">📊</div>
+        <div class="nav-label">Summary</div>
+      </button>
+
+      <button class="nav-btn" data-section="history" onclick="showSection('history')">
+        <div class="nav-icon">📜</div>
+        <div class="nav-label">History</div>
+      </button>
+
+      <button class="nav-btn" data-section="chart" onclick="showSection('chart')">
+        <div class="nav-icon">📉</div>
+        <div class="nav-label">Chart</div>
+      </button>
+    </div>
+
+    <!-- GLOBAL MESSAGES -->
+    <div id="message"></div>
+    <div id="error"></div>
 
     <!-- 1. TRADE SECTION -->
     <div class="section active" id="section-trade">
@@ -85,7 +84,7 @@
         Quantity:
         <input type="number" id="qty-input" placeholder="Qty" min="1" value="1">
       </label>
-      <br style="margin-bottom:8px;">
+      <br>
       <button onclick="buy()">Buy</button>
       <button onclick="sell()">Sell</button>
     </div>
@@ -126,6 +125,7 @@
       <p>Overview of your cash and holdings.</p>
       <p>Cash: <span id="cash"></span></p>
       <p>Net Worth: <span id="net-worth"></span></p>
+      <button class="secondary" onclick="resetPortfolio()">Reset Portfolio</button>
       <table>
         <thead>
           <tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Value</th></tr>
@@ -144,7 +144,7 @@
       <p>Number of trades: <span id="num-trades" class="stats-value"></span></p>
     </div>
 
-    <!-- 6. TRADE HISTORY SECTION (TABLE) -->
+    <!-- 6. TRADE HISTORY SECTION -->
     <div class="section" id="section-history">
       <h2>Trade History</h2>
       <p>List of all executed trades.</p>
@@ -183,41 +183,33 @@
       </div>
     </div>
 
-    <!-- Messages -->
-    <!-- Toast notifications -->
+    <!-- Toast notifications (optional, currently unused) -->
     <div id="toast-container"></div>
 
   </div> <!-- end app-container -->
- <!-- end app-container -->
 
   <script>
     let priceChart = null;
 
     // ---- SECTION NAVIGATION ----
     function showSection(name) {
-      // hide all sections
       document.querySelectorAll('.section').forEach(sec => {
         sec.classList.remove('active');
       });
-      // remove active from all nav buttons
       document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('nav-btn-active');
       });
-      // show selected section
+
       const section = document.getElementById('section-' + name);
-      if (section) {
-        section.classList.add('active');
-      }
-      // mark nav button active
+      if (section) section.classList.add('active');
+
       const btn = document.querySelector(`.nav-btn[data-section="${name}"]`);
-      if (btn) {
-        btn.classList.add('nav-btn-active');
-      }
-      // scroll to top of container for better feel
+      if (btn) btn.classList.add('nav-btn-active');
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ---- API HELPERS & UI LOGIC ----
+    // ---- API HELPERS ----
     async function fetchJSON(url, options) {
       const res = await fetch(url, options);
       const data = await res.json();
@@ -251,8 +243,8 @@
           tr.innerHTML = `
             <td>${h.symbol}</td>
             <td>${h.qty}</td>
-            <td>${h.price.toFixed(2)}</td>
-            <td>${h.value.toFixed(2)}</td>`;
+            <td>${h.price !== null ? h.price.toFixed(2) : '-'}</td>
+            <td>${h.value !== null ? h.value.toFixed(2) : '-'}</td>`;
           tbody.appendChild(tr);
         }
       } catch (err) { showError(err.message); }
@@ -265,11 +257,13 @@
         document.getElementById('total-invested').textContent = fmt(data.total_buys);
         document.getElementById('total-sells').textContent = fmt(data.total_sells);
         document.getElementById('net-invested').textContent = fmt(data.net_invested);
+
         const profitEl = document.getElementById('total-profit');
         profitEl.textContent = fmt(data.total_profit);
         profitEl.classList.remove('positive', 'negative');
         if (data.total_profit > 0) profitEl.classList.add('positive');
         else if (data.total_profit < 0) profitEl.classList.add('negative');
+
         document.getElementById('num-trades').textContent = data.num_trades;
       } catch (err) { showError(err.message); }
     }
@@ -337,12 +331,17 @@
     async function loadHistory() {
       try {
         const data = await fetchJSON('/api/history');
-        const ul = document.getElementById('history-list');
-        ul.innerHTML = '';
+        const tbody = document.getElementById('history-body');
+        tbody.innerHTML = '';
         for (const t of data.trades) {
-          const li = document.createElement('li');
-          li.textContent = `${t.date} ${t.type} ${t.symbol} ${t.qty} @ ${t.price.toFixed(2)}`;
-          ul.appendChild(li);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${t.date}</td>
+            <td>${t.type}</td>
+            <td>${t.symbol}</td>
+            <td>${t.qty}</td>
+            <td>${Number(t.price).toFixed(2)}</td>`;
+          tbody.appendChild(tr);
         }
       } catch (err) { showError(err.message); }
     }
@@ -389,11 +388,22 @@
       } catch (err) { showError(err.message); }
     }
 
-    function showMessage(msg) { document.getElementById('message').textContent = msg; }
-    function showError(msg) { document.getElementById('error').textContent = msg; }
+    // ---- MESSAGES ----
+    function showMessage(msg) {
+      const el = document.getElementById('message');
+      el.textContent = msg;
+      el.style.display = msg ? 'block' : 'none';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.style.display = msg ? 'block' : 'none';
+    }
+
     function clearMessages() {
-      document.getElementById('message').textContent = '';
-      document.getElementById('error').textContent = '';
+      showMessage('');
+      showError('');
     }
 
     // Initial load

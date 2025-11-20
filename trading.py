@@ -2,7 +2,7 @@
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import datetime
 
 DATA_PATH = Path("data")
@@ -14,25 +14,40 @@ class Portfolio:
     Simple portfolio class.
     - cash: float
     - holdings: dict symbol -> qty (ints)
-    - trade_history: list of trade dicts
+    - trade_history: list of trade dicts:
+        {
+          "date": "YYYY-MM-DD",
+          "type": "BUY" | "SELL",
+          "symbol": "ABC",
+          "qty": int,
+          "price": float
+        }
     """
 
     def __init__(self, cash: float = 10000.0):
         self.cash: float = float(cash)
         self.holdings: Dict[str, int] = defaultdict(int)
-        self.trade_history: list = []
+        self.trade_history: List[Dict[str, Any]] = []
 
     # --- persistence ---
     @classmethod
     def load(cls) -> "Portfolio":
-        DATA_PATH.mkdir(exist_ok=True)
+        """
+        Load portfolio from data/portfolio.json.
+        If file does not exist, create a default one with 10,000 cash.
+        """
+        DATA_PATH.mkdir(parents=True, exist_ok=True)
+
         if not PORTFOLIO_FILE.exists():
             p = cls()
             p.save()
             return p
+
         with PORTFOLIO_FILE.open("r", encoding="utf-8") as f:
             data = json.load(f)
+
         p = cls(cash=data.get("cash", 10000.0))
+
         holdings = data.get("holdings", {}) or {}
         # normalize keys to uppercase and ensure ints
         for sym, qty in holdings.items():
@@ -41,11 +56,14 @@ class Portfolio:
             except Exception:
                 # skip invalid quantities
                 continue
-        p.trade_history = data.get("trade_history", []) or data.get("trades", [])
+
+        # accept either "trade_history" or "trades" for compatibility
+        p.trade_history = data.get("trade_history", []) or data.get("trades", []) or []
         return p
 
     def save(self) -> None:
-        DATA_PATH.mkdir(exist_ok=True)
+        """Persist the portfolio to data/portfolio.json."""
+        DATA_PATH.mkdir(parents=True, exist_ok=True)
         data = {
             "cash": self.cash,
             "holdings": dict(self.holdings),
@@ -55,25 +73,39 @@ class Portfolio:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
     # --- trading ops ---
-    def buy(self, symbol: str, price: float, qty: int, date: Optional[Any] = None) -> None:
+    def buy(
+        self,
+        symbol: str,
+        price: float,
+        qty: int,
+        date: Optional[Any] = None,
+    ) -> None:
         """
-        Buy qty shares of symbol at price. Raises ValueError on invalid input.
+        Buy qty shares of symbol at price.
+        Raises ValueError on invalid input or insufficient cash.
         """
         if symbol is None:
             raise ValueError("Symbol required")
+
         symbol = symbol.upper()
+
         try:
             qty = int(qty)
         except Exception:
             raise ValueError("Quantity must be an integer")
+
         if qty <= 0:
             raise ValueError("Quantity must be > 0")
+
         price = float(price)
         cost = price * qty
+
         if cost > self.cash + 1e-9:
             raise ValueError("Not enough cash")
+
         self.cash -= cost
         self.holdings[symbol] = int(self.holdings.get(symbol, 0)) + qty
+
         self.trade_history.append(
             {
                 "date": self._format_date(date),
@@ -85,25 +117,38 @@ class Portfolio:
         )
         self.save()
 
-    def sell(self, symbol: str, price: float, qty: int, date: Optional[Any] = None) -> None:
+    def sell(
+        self,
+        symbol: str,
+        price: float,
+        qty: int,
+        date: Optional[Any] = None,
+    ) -> None:
         """
-        Sell qty shares of symbol at price. Raises ValueError on invalid input.
+        Sell qty shares of symbol at price.
+        Raises ValueError on invalid input or insufficient shares.
         """
         if symbol is None:
             raise ValueError("Symbol required")
+
         symbol = symbol.upper()
+
         try:
             qty = int(qty)
         except Exception:
             raise ValueError("Quantity must be an integer")
+
         if qty <= 0:
             raise ValueError("Quantity must be > 0")
+
         owned = int(self.holdings.get(symbol, 0))
         if qty > owned:
             raise ValueError("Not enough shares to sell")
+
         price = float(price)
         revenue = price * qty
         self.cash += revenue
+
         new_qty = owned - qty
         if new_qty <= 0:
             # remove symbol entirely if zero or negative
@@ -127,14 +172,18 @@ class Portfolio:
         """Return YYYY-MM-DD string for date_val or today's date if None."""
         if date_val is None:
             return datetime.date.today().isoformat()
-        if isinstance(date_val, (datetime.date, datetime.datetime)):
-            return date_val.date().isoformat() if isinstance(date_val, datetime.datetime) else date_val.isoformat()
+        if isinstance(date_val, datetime.datetime):
+            return date_val.date().isoformat()
+        if isinstance(date_val, datetime.date):
+            return date_val.isoformat()
+        # fallback if some other type is passed
         return str(date_val)
 
     # --- helpers ---
     def net_worth(self, market) -> float:
         """
-        Compute net worth. Skip symbols missing from the market instead of raising.
+        Compute net worth given a market.
+        Skip symbols missing from the market instead of raising.
         """
         value = float(self.cash or 0.0)
         for sym, qty in self.holdings.items():
@@ -149,6 +198,7 @@ class Portfolio:
         return value
 
     def summary(self, market) -> str:
+        """Return a human-readable summary for CLI usage."""
         lines = []
         lines.append(f"Cash: {self.cash:.2f}")
         lines.append(f"Net worth: {self.net_worth(market):.2f}")
@@ -160,6 +210,6 @@ class Portfolio:
             if stock is None:
                 lines.append(f"  {sym}: {qty} shares @ UNKNOWN (market missing)")
                 continue
-            price = stock.price
+            price = float(stock.price)
             lines.append(f"  {sym}: {qty} shares @ {price:.2f} -> {qty * price:.2f}")
         return "\n".join(lines)

@@ -1,85 +1,29 @@
 {
-  "cash": 9380.689355272274,
+  "cash": 9900.0,
   "holdings": {
-    "ABC": 5
+    "BAR": 10
   },
   "trade_history": [
     {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "NEW",
-      "qty": 3,
-      "price": 25.5
-    },
-    {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "NEW",
-      "qty": 2,
-      "price": 25.5
-    },
-    {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "ABC",
-      "qty": 2,
-      "price": 100.0
-    },
-    {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "ABC",
-      "qty": 1,
-      "price": 100.0
-    },
-    {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "ABC",
-      "qty": 1,
-      "price": 100.0
-    },
-    {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "ABC",
-      "qty": 1,
-      "price": 100.0
-    },
-    {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "ABC",
-      "qty": 1,
-      "price": 100.0
-    },
-    {
-      "date": "2025-11-19",
+      "date": "2025-11-20",
       "type": "BUY",
       "symbol": "BAR",
-      "qty": 20,
+      "qty": 10,
       "price": 10.0
-    },
-    {
-      "date": "2025-11-19",
-      "type": "BUY",
-      "symbol": "ABC",
-      "qty": 1,
-      "price": 100.0
-    },
-    {
-      "date": "2025-11-19",
-      "type": "SELL",
-      "symbol": "ABC",
-      "qty": 1,
-      "price": 100.0
     },
     {
       "date": "2025-11-20",
       "type": "BUY",
-      "symbol": "ABC",
-      "qty": 3,
-      "price": 123.86212894554517
+      "symbol": "XYZ",
+      "qty": 10,
+      "price": 50.0
+    },
+    {
+      "date": "2025-11-20",
+      "type": "SELL",
+      "symbol": "XYZ",
+      "qty": 10,
+      "price": 50.0
     }
   ]
 }
