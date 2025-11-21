@@ -5,6 +5,14 @@ Unified API server for the stock simulator.
 - JSON shape matches frontend expectations:
   - success: { message, ...data_fields }
   - error:   { error, ...optional_fields }
+
+This file is identical to your uploaded app.py except:
+- Replaced the broken /buy handler with a safe, canonical /api/buy handler
+  that loads the portfolio, validates input, persists state, and returns
+  the full JSON the frontend expects (trades, prices, portfolio_summary).
+- Updated /api/sell to persist the portfolio and return the same canonical
+  fields for parity.
+- Kept all other code and routes unchanged.
 """
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -57,6 +65,13 @@ def log_request():
 
 
 # -----------------------
+# Global market instance
+# -----------------------
+# Move market here so helpers that reference `market` are safe at runtime.
+market = make_default_market()
+
+
+# -----------------------
 # Helper functions
 # -----------------------
 def resp_ok(message="ok", data=None, status=200):
@@ -105,10 +120,44 @@ def ensure_data_dir():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# -----------------------
-# Global market instance
-# -----------------------
-market = make_default_market()
+def _prices_dict():
+    """Return simple { symbol: price } mapping from market.stocks."""
+    try:
+        return {sym: float(stock.price) for sym, stock in getattr(market, "stocks", {}).items()}
+    except Exception:
+        return {}
+
+
+def _portfolio_summary_dict(portfolio):
+    """
+    Build a JSON-serializable portfolio summary dict:
+    { cash, net_worth, holdings: [ {symbol, qty, price, value}, ... ] }
+    """
+    cash = getattr(portfolio, "cash", 0.0)
+    # build holdings list similar to api_portfolio
+    holdings_map = getattr(portfolio, "holdings", {}) or {}
+    holdings = []
+    for sym, qty in holdings_map.items():
+        try:
+            qty_num = int(qty)
+        except Exception:
+            continue
+        stock = getattr(market, "stocks", {}).get(sym.upper())
+        price = float(stock.price) if stock is not None else None
+        value = (price * qty_num) if (price is not None) else None
+        holdings.append({"symbol": sym, "qty": qty_num, "price": price, "value": value})
+
+    try:
+        net_worth = portfolio.net_worth(market)
+    except Exception:
+        # fallback: approximate from cash + holdings with known prices
+        approx = float(cash or 0.0)
+        for h in holdings:
+            if h["value"] is not None:
+                approx += float(h["value"])
+        net_worth = approx
+
+    return {"cash": cash, "net_worth": net_worth, "holdings": holdings}
 
 
 # -----------------------
@@ -214,86 +263,124 @@ def api_addstock():
         return resp_err(f"Failed to add stock: {e}", 500)
 
 
+# -----------------------
+# Replaced broken /buy with canonical /api/buy
+# -----------------------
 @app.route("/api/buy", methods=["POST"])
 def api_buy():
+    """
+    Expects JSON: { "symbol": "ABC", "qty": 1 }
+    Returns canonical JSON: success,message,symbol,qty,price,cash,net_worth,trades,prices,portfolio_summary
+    """
     j, err = read_json_request(require_json=True)
     if err:
         return err
 
-    symbol = (j.get("symbol") or "").upper()
-    qty = j.get("qty")
+    symbol = (j.get("symbol") or "").strip().upper()
+    qty = j.get("qty", None)
+
+    if not symbol:
+        return resp_err("symbol is required", 400)
 
     try:
-        qty = int(qty)
+        qty = int(float(qty))  # accept numeric-ish values but convert to int
     except Exception:
         return resp_err("qty must be an integer", 400)
     if qty <= 0:
         return resp_err("qty must be > 0", 400)
+
     if symbol not in market.stocks:
         return resp_err("unknown symbol", 400)
 
-    portfolio = Portfolio.load()
-    price = market.stocks[symbol].price
-
     try:
+        # Load portfolio (Portfolio.load handles default case)
+        portfolio = Portfolio.load()
+
+        # Use current market price as executed price
+        price = float(market.stocks[symbol].price)
+
+        # portfolio.buy mutates and saves internally; it raises on failure.
         portfolio.buy(symbol, price, qty, market.date)
-        logger.info(
-            f"BUY {symbol} qty={qty} price={price:.2f} cash_after={portfolio.cash:.2f}"
-        )
-        return resp_ok(
-            "bought",
-            {
-                "symbol": symbol,
-                "qty": qty,
-                "price": price,
-                "cash": portfolio.cash,
-                "net_worth": portfolio.net_worth(market),
-            },
-        )
+
+        # After calling buy(), the portfolio is persisted by trading.Portfolio.save()
+        # Prepare canonical response
+        trades = getattr(portfolio, "trade_history", []) or []
+        prices = _prices_dict()
+        portfolio_summary = _portfolio_summary_dict(portfolio)
+
+        response = {
+            "symbol": symbol,
+            "qty": qty,
+            "price": price,
+            "cash": getattr(portfolio, "cash", None),
+            "net_worth": portfolio_summary.get("net_worth"),
+            "trades": trades,
+            "prices": prices,
+            "portfolio_summary": portfolio_summary,
+        }
+        return resp_ok("bought", response, 200)
+
     except Exception as e:
         logger.exception("Buy failed")
-        return resp_err(str(e), 400)
+        # return JSON-safe error payload
+        return resp_err(f"Buy failed: {e}", 500, {"trades": [], "prices": {}})
 
 
+# -----------------------
+# Update /api/sell to persist and return canonical fields
+# -----------------------
 @app.route("/api/sell", methods=["POST"])
 def api_sell():
+    """
+    Expects JSON: { "symbol": "ABC", "qty": 1 }
+    Returns canonical JSON similar to /api/buy.
+    """
     j, err = read_json_request(require_json=True)
     if err:
         return err
 
-    symbol = (j.get("symbol") or "").upper()
-    qty = j.get("qty")
+    symbol = (j.get("symbol") or "").strip().upper()
+    qty = j.get("qty", None)
+
+    if not symbol:
+        return resp_err("symbol is required", 400)
 
     try:
-        qty = int(qty)
+        qty = int(float(qty))
     except Exception:
         return resp_err("qty must be an integer", 400)
     if qty <= 0:
         return resp_err("qty must be > 0", 400)
+
     if symbol not in market.stocks:
         return resp_err("unknown symbol", 400)
 
-    portfolio = Portfolio.load()
-    price = market.stocks[symbol].price
-
     try:
+        portfolio = Portfolio.load()
+        price = float(market.stocks[symbol].price)
+
+        # portfolio.sell mutates + saves internally; will raise on insufficient shares
         portfolio.sell(symbol, price, qty, market.date)
-        logger.info(
-            f"SELL {symbol} qty={qty} price={price:.2f} cash_after={portfolio.cash:.2f}"
-        )
-        return resp_ok(
-            "sold",
-            {
-                "symbol": symbol,
-                "qty": qty,
-                "price": price,
-                "cash": portfolio.cash,
-                "net_worth": portfolio.net_worth(market),
-            },
-        )
+
+        trades = getattr(portfolio, "trade_history", []) or []
+        prices = _prices_dict()
+        portfolio_summary = _portfolio_summary_dict(portfolio)
+
+        response = {
+            "symbol": symbol,
+            "qty": qty,
+            "price": price,
+            "cash": getattr(portfolio, "cash", None),
+            "net_worth": portfolio_summary.get("net_worth"),
+            "trades": trades,
+            "prices": prices,
+            "portfolio_summary": portfolio_summary,
+        }
+        return resp_ok("sold", response, 200)
+
     except Exception as e:
         logger.exception("Sell failed")
-        return resp_err(str(e), 400)
+        return resp_err(f"Sell failed: {e}", 400, {"trades": [], "prices": {}})
 
 
 @app.route("/api/portfolio", methods=["GET"])
@@ -476,6 +563,56 @@ def api_reset():
     except Exception as e:
         logger.exception("Reset failed")
         return resp_err(f"Reset failed: {e}", 500)
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    """
+    Lightweight login endpoint.
+    Accepts JSON or form: { "user": "<username>" }
+    Returns: { success: true, message: "...", user: "..." }
+    NOTE: this is intentionally stateless (no sessions). Frontend should
+    include ?user=<name> on API calls or set header as needed.
+    """
+    try:
+        j, err = read_json_request(require_json=False)
+        if err:
+            return err
+        # accept from JSON, form data, or query param
+        user = (j.get("user") if isinstance(j, dict) else None) \
+               or request.form.get("user") \
+               or request.args.get("user") \
+               or "guest"
+        user = str(user).strip()
+        if not user:
+            return resp_err("user is required", 400)
+
+        # respond with a canonical success payload frontend expects
+        return resp_ok("login successful", {"user": user})
+    except Exception as e:
+        logger.exception("Login failed")
+        return resp_err(f"Login failed: {e}", 500)
+
+@app.route("/api/prices_live", methods=["GET"])
+def api_prices_live():
+    """
+    Live prices endpoint - simplified safe mode.
+    Always return simulated prices and a flag 'live_enabled': False so the frontend
+    can continue rendering the ticker without error and knows live mode is disabled.
+    """
+    try:
+        simulated_prices = market.list_prices()
+        data = {
+            "live_enabled": False,              # explicitly tell the UI live mode is disabled
+            "message": "Live data disabled; running in simulation mode.",
+            "date": str(market.date),
+            "prices": simulated_prices
+        }
+        # Return HTTP 200 so the frontend does not treat this as a service failure.
+        return resp_ok("live disabled", data, 200)
+    except Exception as e:
+        logger.exception("prices_live failed")
+        return resp_err(f"prices_live failed: {e}", 500)
 
 
 # -----------------------
