@@ -13,10 +13,6 @@ A clean and interactive stock trading simulator that lets users practice buying,
 * **Clean Frontend UI** using HTML/CSS/JS
 * **Backend API** built with Python (Flask)
 
-## 🖼 Screenshots
-
-(Add project screenshots here)
-
 ## 📁 Project Structure
 
 ```
