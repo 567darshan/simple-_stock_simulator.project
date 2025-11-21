@@ -1,7 +1,7 @@
 {
-  "cash": 8800.0,
+  "cash": 9000.969416814798,
   "holdings": {
-    "FOO": 6
+    "FOO": 5
   },
   "trade_history": [
     {
@@ -10,6 +10,55 @@
       "symbol": "FOO",
       "qty": 6,
       "price": 200.0
+    },
+    {
+      "date": "2025-11-22",
+      "type": "BUY",
+      "symbol": "ABC",
+      "qty": 1,
+      "price": 103.884546318216
+    },
+    {
+      "date": "2025-11-22",
+      "type": "SELL",
+      "symbol": "ABC",
+      "qty": 1,
+      "price": 103.884546318216
+    },
+    {
+      "date": "2025-11-22",
+      "type": "BUY",
+      "symbol": "ABC",
+      "qty": 1,
+      "price": 103.884546318216
+    },
+    {
+      "date": "2025-11-22",
+      "type": "SELL",
+      "symbol": "ABC",
+      "qty": 1,
+      "price": 103.884546318216
+    },
+    {
+      "date": "2025-11-22",
+      "type": "BUY",
+      "symbol": "XYZ",
+      "qty": 1,
+      "price": 49.261808583553396
+    },
+    {
+      "date": "2025-11-22",
+      "type": "SELL",
+      "symbol": "XYZ",
+      "qty": 1,
+      "price": 49.261808583553396
+    },
+    {
+      "date": "2025-11-23",
+      "type": "SELL",
+      "symbol": "FOO",
+      "qty": 1,
+      "price": 200.96941681479765
     }
   ]
 }
