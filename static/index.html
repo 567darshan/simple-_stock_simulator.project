@@ -5,7 +5,7 @@
   <title>Simple Stock Simulator</title>
 
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23007bff'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%2300ff7f'/%3E%3C/svg%3E">
 
   <!-- Old stylesheet (optional) -->
   <link rel="stylesheet" href="/static/style.css">
@@ -13,25 +13,41 @@
   <!-- Chart.js for price history -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- NEW DESIGN CSS -->
+  <!-- FULL UI / CRYPTO THEME -->
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
       font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh;
-      background: radial-gradient(circle at top left, #6a11cb 0, #2575fc 40%, #0f172a 100%);
-      color: #f9fafb;
+      background:
+        radial-gradient(circle at top left, #0ea5e9 0, #0f172a 40%, #020617 100%);
+      color: #e5e7eb;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
 
-    h1, h2, h3 {
-      margin: 0;
+    h1, h2, h3 { margin: 0; }
+
+    /* GLASS / FLOAT HELPERS */
+
+    .glass {
+      background: rgba(15,23,42,0.75);
+      border: 1px solid rgba(148,163,184,0.35);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .float-on-hover {
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .float-on-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(15,23,42,0.9);
+      border-color: rgba(96,165,250,0.9);
     }
 
     /* HEADER */
@@ -46,86 +62,45 @@
     .header-top-row {
       width: 100%;
       max-width: 1200px;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      background: linear-gradient(120deg, rgba(56,189,248,0.96), rgba(16,185,129,0.96));
       border-radius: 24px;
       padding: 18px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      backdrop-filter: blur(18px);
-      box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+      box-shadow: 0 24px 60px rgba(15,23,42,0.8);
       border: 1px solid rgba(255,255,255,0.4);
     }
 
     .header-top-row h1 {
-      font-size: 28px;
+      font-size: 32px;
+      font-weight: 800;
       letter-spacing: 0.5px;
-      font-weight: 700;
-      background: linear-gradient(120deg, #f9fafb, #e0f2fe, #bfdbfe);
+      background: linear-gradient(90deg, #ffffff, #c3f0ff, #80eaff);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      text-shadow:
+        0 0 10px rgba(255,255,255,0.8),
+        0 0 20px rgba(0,0,0,0.4);
     }
 
     .subtitle {
       margin-top: 4px;
       font-size: 14px;
-      color: rgba(15,23,42,0.9);
+      color: #e0f2fe;
       font-weight: 500;
     }
 
     .subtitle span {
       font-weight: 700;
-      color: #111827;
+      color: #f9fafb;
     }
 
     .header-controls {
       display: flex;
       gap: 18px;
       align-items: center;
-    }
-
-    .user-bar label,
-    .mode-bar .mode-label {
-      font-size: 13px;
-      font-weight: 500;
-      margin-right: 6px;
-    }
-
-    .user-bar input {
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: none;
-      outline: none;
-      font-size: 13px;
-      min-width: 150px;
-      margin-right: 6px;
-    }
-
-    #login-btn {
-      padding: 6px 14px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #2563eb, #22c55e);
-      color: #fff;
-      box-shadow: 0 0 12px rgba(37,99,235,0.7);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    #login-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 0 18px rgba(34,197,94,0.85);
-    }
-
-    .current-user-label {
-      display: block;
-      font-size: 12px;
-      margin-top: 4px;
-      opacity: 0.9;
     }
 
     .user-bar {
@@ -139,16 +114,68 @@
       align-items: center;
     }
 
+    .user-bar label,
+    .mode-label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-right: 6px;
+      color: #0f172a;
+    }
+
+    .user-bar input {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(15,118,110,0.8);
+      outline: none;
+      font-size: 13px;
+      min-width: 150px;
+      margin-right: 6px;
+      background: rgba(15,23,42,0.95);
+      color: #e5e7eb;
+    }
+
+    .user-bar input::placeholder {
+      color: #64748b;
+    }
+
+    #login-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      background: radial-gradient(circle at top left, #22c55e, #16a34a);
+      color: #000000;
+      box-shadow: 0 0 14px rgba(22,163,74,0.9);
+      transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    }
+
+    #login-btn:hover {
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 0 22px rgba(22,163,74,1);
+      filter: brightness(1.1);
+    }
+
+    .current-user-label {
+      display: block;
+      font-size: 12px;
+      margin-top: 4px;
+      opacity: 0.9;
+      color: #14532d;
+    }
+
     /* MODE TOGGLE */
 
     .mode-bar {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(15,23,42,0.35);
+      background: rgba(15,23,42,0.9);
       padding: 6px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.5);
+      border: 1px solid rgba(34,197,94,0.5);
+      box-shadow: 0 0 18px rgba(0,0,0,0.8);
     }
 
     .mode-label {
@@ -166,7 +193,7 @@
     }
 
     .mode-pill input {
-      display: none; /* hide original radio */
+      display: none;
     }
 
     .mode-pill span {
@@ -175,16 +202,16 @@
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      color: #e5e7eb;
+      color: #9ca3af;
       background: transparent;
       transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
       white-space: nowrap;
     }
 
     .mode-pill input:checked + span {
-      background: linear-gradient(135deg, #10b981, #22c55e);
-      color: #ffffff;
-      box-shadow: 0 0 10px rgba(16,185,129,0.9);
+      background: radial-gradient(circle at top left, #22c55e, #0f766e);
+      color: #020617;
+      box-shadow: 0 0 14px rgba(34,197,94,0.9);
       transform: translateY(-1px);
     }
 
@@ -194,12 +221,84 @@
       width: 100%;
       max-width: 1200px;
       margin: 18px auto 32px;
-      padding: 20px 24px 28px;
-      background: linear-gradient(135deg, rgba(15,23,42,0.97), rgba(15,23,42,0.9));
+      padding: 16px 24px 28px;
+      background: radial-gradient(circle at top left, #0b1120 0, #020617 60%, #020617 100%);
       border-radius: 26px;
-      box-shadow: 0 22px 60px rgba(15,23,42,0.9);
-      border: 1px solid rgba(148,163,184,0.45);
-      backdrop-filter: blur(18px);
+      box-shadow: 0 22px 70px rgba(15,23,42,1);
+      border: 1px solid rgba(148,163,184,0.4);
+    }
+
+    /* LIVE TICKER */
+
+    .ticker-shell {
+      margin-bottom: 12px;
+      border-radius: 999px;
+      padding: 4px;
+      background: linear-gradient(90deg, rgba(34,197,94,0.7), rgba(56,189,248,0.7));
+      box-shadow: 0 0 22px rgba(34,197,94,0.5);
+    }
+
+    .ticker {
+      position: relative;
+      overflow: hidden;
+      border-radius: 999px;
+      padding: 6px 0;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.9));
+    }
+
+    .ticker-label {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #facc15;
+      font-weight: 700;
+    }
+
+    .ticker-track {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 90px;
+      animation: tickerScroll 28s linear infinite;
+    }
+
+    .ticker-item {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-right: 32px;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ticker-sym {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #e5e7eb;
+    }
+
+    .ticker-price {
+      color: #cbd5f5;
+    }
+
+    .ticker-up {
+      color: #22c55e;
+    }
+
+    .ticker-down {
+      color: #f97316;
+    }
+
+    .ticker:hover .ticker-track {
+      animation-play-state: paused;
+    }
+
+    @keyframes tickerScroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
     }
 
     /* NAVIGATION */
@@ -208,7 +307,7 @@
       display: flex;
       overflow-x: auto;
       padding-bottom: 6px;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
       gap: 10px;
     }
 
@@ -216,29 +315,46 @@
       border: none;
       border-radius: 999px;
       padding: 8px 18px;
-      background: linear-gradient(135deg, #4b5563, #111827);
-      color: #ffffff;
+      background: radial-gradient(circle at top left, #111827, #020617);
+      color: #e5e7eb;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       cursor: pointer;
       font-size: 14px;
       font-weight: 600;
-      box-shadow: 0 8px 18px rgba(0,0,0,0.4);
-      transition: background 0.25s, transform 0.2s, box-shadow 0.25s;
+      box-shadow: 0 8px 20px rgba(15,23,42,0.9);
       white-space: nowrap;
+      border: 1px solid rgba(31,41,55,0.9);
+      transition: background 0.25s, transform 0.2s, box-shadow 0.25s, border-color 0.25s;
+    }
+
+    .nav-btn .nav-label,
+    .nav-btn .nav-icon {
+      color: #ffffff !important;
+      opacity: 0.95;
+      font-weight: 600;
+      text-shadow: 0 0 8px rgba(255,255,255,0.6);
     }
 
     .nav-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 26px rgba(0,0,0,0.7);
+      transform: translateY(-3px);
+      background: rgba(59,130,246,0.65);
+      box-shadow: 0 0 12px rgba(59,130,246,0.9), 0 0 26px rgba(34,197,94,0.5);
+      border-color: rgba(96,165,250,1);
     }
 
     .nav-btn-active {
       background: linear-gradient(135deg, #22c55e, #3b82f6);
-      color: #ffffff;
-      box-shadow: 0 0 18px rgba(59,130,246,0.9);
-      transform: translateY(-2px);
+      color: #fff !important;
+      box-shadow: 0 0 18px rgba(59,130,246,1), 0 0 35px rgba(34,197,94,0.8);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    .nav-btn-active .nav-label,
+    .nav-btn-active .nav-icon {
+      color: #ffffff !important;
+      text-shadow: 0 0 10px rgba(255,255,255,0.9);
     }
 
     .nav-icon {
@@ -252,15 +368,116 @@
       letter-spacing: 0.3px;
     }
 
-    /* SECTIONS / CARDS */
+    /* DASHBOARD SUMMARY CARDS */
+
+    .summary-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .summary-card {
+      flex: 1 1 220px;
+      min-width: 200px;
+      padding: 12px 16px;
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(55,65,81,0.9);
+      background: radial-gradient(circle at top left, #111827, #020617 70%);
+      box-shadow: 0 18px 40px rgba(15,23,42,0.95);
+    }
+
+    .summary-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left,
+        rgba(34,197,94,0.35),
+        transparent 55%);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    .summary-card:nth-child(2)::before {
+      background: radial-gradient(circle at top left,
+        rgba(34,197,94,0.05),
+        rgba(248,113,113,0.35),
+        transparent 60%);
+    }
+
+    .summary-card:nth-child(3)::before {
+      background: radial-gradient(circle at top left,
+        rgba(249,115,22,0.35),
+        transparent 60%);
+    }
+
+    .summary-card:nth-child(4)::before {
+      background: radial-gradient(circle at top left,
+        rgba(56,189,248,0.35),
+        transparent 55%);
+    }
+
+    .summary-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .summary-label {
+      font-size: 11px;
+      color: #cbd5f5;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f9fafb;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .summary-pill {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(31,41,55,0.9);
+      color: #9ca3af;
+      white-space: nowrap;
+      align-self: flex-start;
+    }
+
+    .summary-icon {
+      font-size: 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .summary-profit-positive {
+      color: #22c55e;
+      text-shadow: 0 0 10px rgba(34,197,94,0.7);
+    }
+
+    .summary-profit-negative {
+      color: #f97316;
+      text-shadow: 0 0 10px rgba(248,113,113,0.7);
+    }
+
+    /* SECTIONS */
 
     .section {
       display: none;
-      background: radial-gradient(circle at top left, rgba(30,64,175,0.6), rgba(15,23,42,0.95));
+      margin-bottom: 16px;
       border-radius: 22px;
       padding: 18px 20px 20px;
-      box-shadow: inset 0 0 0 1px rgba(148,163,184,0.4);
-      margin-bottom: 16px;
+      background: radial-gradient(circle at top left, #0b1120, #020617 65%, #020617 100%);
+      border: 1px solid rgba(51,65,85,0.9);
+      box-shadow: 0 14px 40px rgba(15,23,42,0.95);
     }
 
     .section.active {
@@ -279,7 +496,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      color: #e5e7eb;
+      color: #f9fafb;
     }
 
     .section h2::before {
@@ -318,8 +535,8 @@
     input[type="text"] {
       padding: 7px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.8);
-      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(55,65,81,0.9);
+      background: rgba(15,23,42,0.95);
       color: #e5e7eb;
       font-size: 13px;
       outline: none;
@@ -330,16 +547,14 @@
     select:focus,
     input[type="number"]:focus,
     input[type="text"]:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 1px rgba(56,189,248,0.8);
-      background: rgba(15,23,42,0.95);
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.9);
+      background: rgba(15,23,42,1);
     }
 
     /* BUTTONS */
 
-    button {
-      font-family: inherit;
-    }
+    button { font-family: inherit; }
 
     .primary-btn {
       padding: 8px 22px;
@@ -348,9 +563,9 @@
       cursor: pointer;
       font-size: 14px;
       font-weight: 600;
-      color: #f9fafb;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      box-shadow: 0 0 12px rgba(34,197,94,0.85);
+      color: #020617;
+      background: radial-gradient(circle at top left, #22c55e, #16a34a);
+      box-shadow: 0 0 14px rgba(34,197,94,0.9);
       margin-top: 10px;
       margin-right: 8px;
       transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
@@ -358,15 +573,15 @@
 
     .primary-btn:hover {
       transform: translateY(-1px) scale(1.03);
-      box-shadow: 0 0 18px rgba(34,197,94,1);
+      box-shadow: 0 0 22px rgba(34,197,94,1);
       filter: brightness(1.05);
     }
 
     .secondary {
       padding: 6px 16px;
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.7);
-      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(55,65,81,0.9);
+      background: rgba(15,23,42,1);
       color: #e5e7eb;
       font-size: 12px;
       cursor: pointer;
@@ -375,29 +590,115 @@
     }
 
     .secondary:hover {
-      background: rgba(30,64,175,0.85);
+      background: rgba(21,30,47,1);
       transform: translateY(-1px);
-      box-shadow: 0 0 10px rgba(59,130,246,0.7);
+      box-shadow: 0 0 10px rgba(15,118,110,0.7);
     }
-
-    /* SPECIAL BUY / SELL GLOW */
 
     .buy-btn {
       background: radial-gradient(circle at top left, #22c55e, #16a34a);
-      box-shadow: 0 0 14px rgba(34,197,94,0.9), 0 0 32px rgba(22,163,74,0.85);
-    }
-
-    .buy-btn:hover {
-      box-shadow: 0 0 20px rgba(34,197,94,1), 0 0 40px rgba(22,163,74,1);
+      box-shadow: 0 0 14px rgba(34,197,94,1), 0 0 32px rgba(22,163,74,1);
+      color: #020617;
     }
 
     .sell-btn {
       background: radial-gradient(circle at top left, #f97316, #ef4444);
-      box-shadow: 0 0 14px rgba(248,113,113,0.9), 0 0 32px rgba(249,115,22,0.9);
+      box-shadow: 0 0 14px rgba(248,113,113,1), 0 0 32px rgba(249,115,22,1);
+      color: #020617;
     }
 
-    .sell-btn:hover {
-      box-shadow: 0 0 20px rgba(248,113,113,1), 0 0 42px rgba(249,115,22,1);
+    /* MARKET TABLE ENHANCEMENTS */
+
+    .mode-chip {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      border: 1px solid rgba(55,65,81,0.9);
+    }
+
+    .mode-chip-sim {
+      background: rgba(22,163,74,0.15);
+      border-color: rgba(34,197,94,0.9);
+      color: #bbf7d0;
+    }
+
+    .mode-chip-live {
+      background: rgba(8,47,73,0.4);
+      border-color: rgba(59,130,246,0.9);
+      color: #bfdbfe;
+    }
+
+    .market-symbol-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: radial-gradient(circle at top left, #22c55e, #0ea5e9);
+      font-size: 12px;
+      font-weight: 600;
+      color: #020617;
+      letter-spacing: 0.04em;
+    }
+
+    .market-price-cell {
+      text-align: right;
+    }
+
+    .market-price-text {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* PRICE MOVE ANIMATION */
+
+    .price-up {
+      color: #bbf7d0;
+      text-shadow: 0 0 8px rgba(34,197,94,0.9);
+      animation: priceUpPulse 0.5s ease-out;
+    }
+
+    .price-down {
+      color: #fecaca;
+      text-shadow: 0 0 8px rgba(248,113,113,0.9);
+      animation: priceDownPulse 0.5s ease-out;
+    }
+
+    .price-same {
+      color: #e5e7eb;
+    }
+
+    @keyframes priceUpPulse {
+      0%   { transform: translateY(-1px) scale(1.06); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    @keyframes priceDownPulse {
+      0%   { transform: translateY(1px) scale(0.96); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    /* PRICE TREND ARROWS */
+
+    .trend-arrow {
+      font-size: 14px;
+      font-weight: 900;
+      margin-left: 6px;
+    }
+
+    .arrow-up {
+      color: #22c55e;
+      text-shadow: 0 0 6px rgba(34,197,94,0.9);
+    }
+
+    .arrow-down {
+      color: #ef4444;
+      text-shadow: 0 0 6px rgba(239,68,68,0.9);
+    }
+
+    .arrow-same {
+      color: #64748b;
     }
 
     /* TABLES */
@@ -409,37 +710,35 @@
       font-size: 13px;
       overflow: hidden;
       border-radius: 16px;
-      background: rgba(15,23,42,0.95);
-      box-shadow: 0 12px 28px rgba(15,23,42,0.9);
+      background: #020617;
+      box-shadow: 0 12px 28px rgba(15,23,42,1);
     }
 
     thead {
-      background: linear-gradient(135deg, rgba(59,130,246,0.9), rgba(37,99,235,0.9));
+      background: linear-gradient(135deg, #020617, #0f172a);
     }
 
     thead th {
       text-align: left;
       padding: 10px 10px;
       font-weight: 600;
-      color: #f9fafb;
-      border-bottom: 1px solid rgba(15,23,42,0.9);
+      color: #9ca3af;
+      border-bottom: 1px solid rgba(31,41,55,1);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
     }
 
-    tbody tr:nth-child(even) {
-      background: rgba(15,23,42,0.9);
-    }
-
-    tbody tr:nth-child(odd) {
-      background: rgba(15,23,42,0.8);
-    }
+    tbody tr:nth-child(even) { background: #020617; }
+    tbody tr:nth-child(odd)  { background: #0b1120; }
 
     tbody td {
       padding: 8px 10px;
-      border-bottom: 1px solid rgba(30,64,175,0.6);
+      border-bottom: 1px solid rgba(31,41,55,0.9);
     }
 
     tbody tr:hover {
-      background: rgba(30,64,175,0.9);
+      background: rgba(15,118,110,0.2);
     }
 
     .history-wrapper {
@@ -455,13 +754,8 @@
       color: #e5e7eb;
     }
 
-    .positive {
-      color: #22c55e;
-    }
-
-    .negative {
-      color: #f97316;
-    }
+    .positive { color: #22c55e; }
+    .negative { color: #f97316; }
 
     /* MESSAGE BANNERS */
 
@@ -475,14 +769,14 @@
     }
 
     #message {
-      background: rgba(34,197,94,0.15);
-      border: 1px solid rgba(34,197,94,0.8);
+      background: rgba(22,163,74,0.18);
+      border: 1px solid rgba(34,197,94,0.9);
       color: #bbf7d0;
     }
 
     #error {
-      background: rgba(248,113,113,0.15);
-      border: 1px solid rgba(248,113,113,0.9);
+      background: rgba(153,27,27,0.25);
+      border: 1px solid rgba(239,68,68,0.9);
       color: #fecaca;
     }
 
@@ -490,11 +784,11 @@
 
     .chart-container {
       margin-top: 12px;
-      background: rgba(15,23,42,0.95);
+      background: rgba(15,23,42,1);
       border-radius: 18px;
       padding: 12px;
-      box-shadow: 0 12px 30px rgba(15,23,42,0.9);
-      border: 1px solid rgba(30,64,175,0.75);
+      box-shadow: 0 12px 30px rgba(15,23,42,1);
+      border: 1px solid rgba(31,41,55,1);
     }
 
     canvas {
@@ -529,6 +823,9 @@
       .mode-bar {
         flex-wrap: wrap;
       }
+      .summary-row {
+        flex-direction: column;
+      }
     }
 
     @media (max-width: 640px) {
@@ -548,6 +845,9 @@
       }
       .section {
         padding: 14px 14px 16px;
+      }
+      .summary-card {
+        max-width: none;
       }
     }
   </style>
@@ -599,42 +899,91 @@
   <!-- MAIN CONTENT -->
   <div class="app-container">
 
+    <!-- LIVE TICKER -->
+    <div class="ticker-shell float-on-hover">
+      <div class="ticker">
+        <span class="ticker-label">LIVE TICKER</span>
+        <div id="ticker-track" class="ticker-track">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+    </div>
+
     <!-- NAVIGATION TABS -->
     <div class="app-nav">
-      <button class="nav-btn nav-btn-active" data-section="trade" onclick="showSection('trade')">
+      <button class="nav-btn nav-btn-active float-on-hover" data-section="trade" onclick="showSection('trade')">
         <div class="nav-icon">✅</div>
         <div class="nav-label">Trade</div>
       </button>
 
-      <button class="nav-btn" data-section="simulate" onclick="showSection('simulate')">
+      <button class="nav-btn float-on-hover" data-section="simulate" onclick="showSection('simulate')">
         <div class="nav-icon">⏭️</div>
         <div class="nav-label">Simulate</div>
       </button>
 
-      <button class="nav-btn" data-section="market" onclick="showSection('market')">
+      <button class="nav-btn float-on-hover" data-section="market" onclick="showSection('market')">
         <div class="nav-icon">📈</div>
         <div class="nav-label">Market</div>
       </button>
 
-      <button class="nav-btn" data-section="portfolio" onclick="showSection('portfolio')">
+      <button class="nav-btn float-on-hover" data-section="portfolio" onclick="showSection('portfolio')">
         <div class="nav-icon">💼</div>
         <div class="nav-label">Portfolio</div>
       </button>
 
-      <button class="nav-btn" data-section="summary" onclick="showSection('summary')">
+      <button class="nav-btn float-on-hover" data-section="summary" onclick="showSection('summary')">
         <div class="nav-icon">📊</div>
         <div class="nav-label">Summary</div>
       </button>
 
-      <button class="nav-btn" data-section="history" onclick="showSection('history')">
+      <button class="nav-btn float-on-hover" data-section="history" onclick="showSection('history')">
         <div class="nav-icon">📜</div>
         <div class="nav-label">History</div>
       </button>
 
-      <button class="nav-btn" data-section="chart" onclick="showSection('chart')">
+      <button class="nav-btn float-on-hover" data-section="chart" onclick="showSection('chart')">
         <div class="nav-icon">📉</div>
         <div class="nav-label">Chart</div>
       </button>
+    </div>
+
+    <!-- DASHBOARD SUMMARY CARDS -->
+    <div class="summary-row">
+      <div class="summary-card float-on-hover">
+        <div class="summary-left">
+          <div class="summary-label">Net Worth</div>
+          <div class="summary-value" id="summary-networth">₹0.00</div>
+          <div class="summary-pill">Total value of your account</div>
+        </div>
+        <div class="summary-icon">💰</div>
+      </div>
+
+      <div class="summary-card float-on-hover">
+        <div class="summary-left">
+          <div class="summary-label">Profit / Loss</div>
+          <div class="summary-value" id="summary-profit">₹0.00</div>
+          <div class="summary-pill">vs starting ₹10,000</div>
+        </div>
+        <div class="summary-icon">📈</div>
+      </div>
+
+      <div class="summary-card float-on-hover">
+        <div class="summary-left">
+          <div class="summary-label">Cash</div>
+          <div class="summary-value" id="summary-cash">₹0.00</div>
+          <div class="summary-pill">Available to trade</div>
+        </div>
+        <div class="summary-icon">🪙</div>
+      </div>
+
+      <div class="summary-card float-on-hover">
+        <div class="summary-left">
+          <div class="summary-label">Trades</div>
+          <div class="summary-value" id="summary-trades">0</div>
+          <div class="summary-pill">Total executed</div>
+        </div>
+        <div class="summary-icon">🔁</div>
+      </div>
     </div>
 
     <!-- GLOBAL MESSAGES -->
@@ -642,7 +991,7 @@
     <div id="error"></div>
 
     <!-- 1. TRADE SECTION -->
-    <div class="section active" id="section-trade">
+    <div class="section float-on-hover active" id="section-trade">
       <h2>Trade</h2>
       <p>Choose a stock and quantity, then buy or sell at current market price.</p>
       <label>
@@ -665,7 +1014,7 @@
     </div>
 
     <!-- 2. SIMULATE DAYS SECTION -->
-    <div class="section" id="section-simulate">
+    <div class="section float-on-hover" id="section-simulate">
       <h2>Simulate Days</h2>
       <p>Move the simulated market forward in time to see how prices evolve.</p>
       <label>
@@ -683,11 +1032,14 @@
     </div>
 
     <!-- 3. MARKET PRICES SECTION -->
-    <div class="section" id="section-market">
-      <h2>Market Prices</h2>
+    <div class="section float-on-hover" id="section-market">
+      <h2>
+        Market Prices
+        <span id="mode-chip" class="mode-chip mode-chip-sim">SIMULATION</span>
+      </h2>
       <p>
         Prices for all available stocks.
-        <span class="mode-hint">(changes with Simulation / Real Data mode)</span>
+        <span class="mode-hint">(updates based on the selected mode)</span>
       </p>
       <table>
         <thead>
@@ -698,7 +1050,7 @@
     </div>
 
     <!-- 4. PORTFOLIO SECTION -->
-    <div class="section" id="section-portfolio">
+    <div class="section float-on-hover" id="section-portfolio">
       <h2>Portfolio</h2>
       <p>Overview of your cash and holdings for the current user.</p>
       <p>Cash: <span id="cash"></span></p>
@@ -713,7 +1065,7 @@
     </div>
 
     <!-- 5. SUMMARY SECTION -->
-    <div class="section" id="section-summary">
+    <div class="section float-on-hover" id="section-summary">
       <h2>Summary Stats</h2>
       <p>Total invested (buys): <span id="total-invested" class="stats-value"></span></p>
       <p>Total from sells: <span id="total-sells" class="stats-value"></span></p>
@@ -723,7 +1075,7 @@
     </div>
 
     <!-- 6. TRADE HISTORY SECTION -->
-    <div class="section" id="section-history">
+    <div class="section float-on-hover" id="section-history">
       <h2>Trade History</h2>
       <p>List of all executed trades for the current user.</p>
       <button class="secondary" onclick="loadHistory()">Refresh History</button>
@@ -744,7 +1096,7 @@
     </div>
 
     <!-- 7. PRICE HISTORY CHART SECTION -->
-    <div class="section" id="section-chart">
+    <div class="section float-on-hover" id="section-chart">
       <h2>Price History Chart</h2>
       <p>Visualize the price movement of a stock over time.</p>
       <label>
@@ -766,13 +1118,20 @@
 
   </div> <!-- end app-container -->
 
-  <!-- JS (unchanged logic) -->
+  <!-- JS -->
   <script>
     let priceChart = null;
 
     // ---- LOGIN + MODE STATE ----
     let currentUser = null;           // e.g. "darshan"
     let currentMode = 'simulation';   // "simulation" or "live"
+
+    // Remember last seen prices for animations & ticker arrows
+    let lastPrices = {};
+
+    function fmtMoney(x) {
+      return '₹' + Number(x).toFixed(2);
+    }
 
     function setCurrentUser(username) {
       currentUser = username;
@@ -781,30 +1140,32 @@
       lbl.textContent = username ? `Logged in as: ${username}` : '';
     }
 
+    function updateModeChip() {
+      const chip = document.getElementById('mode-chip');
+      if (!chip) return;
+      if (currentMode === 'live') {
+        chip.textContent = 'LIVE MARKET';
+        chip.className = 'mode-chip mode-chip-live';
+      } else {
+        chip.textContent = 'SIMULATION';
+        chip.className = 'mode-chip mode-chip-sim';
+      }
+    }
+
     function setMode(mode) {
       currentMode = mode;
       localStorage.setItem('mode', mode);
-      // When mode changes, re-load prices (and chart)
+      updateModeChip();
       if (currentUser) {
         loadPrices();
         loadPriceHistory();
       }
     }
 
-    // Append ?user=<username> to the given path
-    function withUser(path) {
-      if (!currentUser) {
-        alert('Please login first.');
-        throw new Error('No user selected');
-      }
-      const sep = path.includes('?') ? '&' : '?';
-      return `${path}${sep}user=${encodeURIComponent(currentUser)}`;
-    }
-
     // Decide which prices endpoint to use
     function getPricesPath() {
       if (currentMode === 'live') {
-        return '/api/prices_live';  // your friend will implement this
+        return '/api/prices_live';  // backend can implement this
       }
       return '/api/prices';
     }
@@ -840,21 +1201,96 @@
       return fetchJSON(url, options);
     }
 
+    // Append ?user=<username> to the given path
+    function withUser(path) {
+      if (!currentUser) {
+        alert('Please login first.');
+        throw new Error('No user selected');
+      }
+      const sep = path.includes('?') ? '&' : '?';
+      return `${path}${sep}user=${encodeURIComponent(currentUser)}`;
+    }
+
+    // ---- TICKER RENDER ----
+    function renderTicker(prices) {
+      const track = document.getElementById('ticker-track');
+      if (!track) return;
+      track.innerHTML = '';
+
+      const entries = Object.entries(prices);
+      if (!entries.length) return;
+
+      const makeItemsHTML = () => {
+        return entries.map(([sym, price]) => {
+          const p = Number(price);
+          let cls = '';
+          if (lastPrices[sym] !== undefined) {
+            const old = Number(lastPrices[sym]);
+            if (p > old) cls = 'ticker-up';
+            else if (p < old) cls = 'ticker-down';
+          }
+          return `
+            <span class="ticker-item">
+              <span class="ticker-sym">${sym}</span>
+              <span class="ticker-price ${cls}">${p.toFixed(2)}</span>
+            </span>
+          `;
+        }).join('');
+      };
+
+      // duplicate content so scrolling loop looks continuous
+      const html = makeItemsHTML();
+      track.innerHTML = html + html;
+    }
+
     // ---- LOAD FUNCTIONS ----
     async function loadPrices() {
       try {
         const path = getPricesPath();
         const data = await fetchUserJSON(path);
+
         if (data.date) {
           document.getElementById('sim-date').textContent = data.date;
         }
+
         const tbody = document.getElementById('prices-body');
         tbody.innerHTML = '';
-        for (const [sym, price] of Object.entries(data.prices)) {
+
+        for (const [sym, rawPrice] of Object.entries(data.prices)) {
+          const priceNum = Number(rawPrice);
+
+          let changeClass = 'price-same';
+          if (lastPrices[sym] !== undefined) {
+            const old = Number(lastPrices[sym]);
+            if (priceNum > old) {
+              changeClass = 'price-up';
+            } else if (priceNum < old) {
+              changeClass = 'price-down';
+            }
+          }
+
+          let arrow = `<span class="trend-arrow arrow-same">•</span>`;
+          if (lastPrices[sym] !== undefined) {
+            const old = Number(lastPrices[sym]);
+            if (priceNum > old) arrow = `<span class="trend-arrow arrow-up">▲</span>`;
+            else if (priceNum < old) arrow = `<span class="trend-arrow arrow-down">▼</span>`;
+          }
+
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${sym}</td><td>${Number(price).toFixed(2)}</td>`;
+          tr.innerHTML = `
+            <td><span class="market-symbol-pill">${sym}</span></td>
+            <td class="market-price-cell">
+              <span class="market-price-text ${changeClass}">${priceNum.toFixed(2)}</span>
+              ${arrow}
+            </td>
+          `;
           tbody.appendChild(tr);
         }
+
+        // update ticker from latest prices
+        renderTicker(data.prices);
+
+        lastPrices = { ...data.prices };
       } catch (err) {
         showError(err.message);
       }
@@ -863,8 +1299,15 @@
     async function loadPortfolio() {
       try {
         const data = await fetchUserJSON('/api/portfolio');
-        document.getElementById('cash').textContent = data.cash.toFixed(2);
-        document.getElementById('net-worth').textContent = data.net_worth.toFixed(2);
+        document.getElementById('cash').textContent = fmtMoney(data.cash);
+        document.getElementById('net-worth').textContent = fmtMoney(data.net_worth);
+
+        // Update summary cards
+        const cashEl = document.getElementById('summary-cash');
+        const netEl = document.getElementById('summary-networth');
+        if (cashEl) cashEl.textContent = fmtMoney(data.cash);
+        if (netEl) netEl.textContent = fmtMoney(data.net_worth);
+
         const tbody = document.getElementById('holdings-body');
         tbody.innerHTML = '';
         for (const h of data.holdings) {
@@ -885,17 +1328,31 @@
       try {
         const data = await fetchUserJSON('/api/stats');
         const fmt = (x) => Number(x).toFixed(2);
-        document.getElementById('total-invested').textContent = fmt(data.total_buys);
-        document.getElementById('total-sells').textContent = fmt(data.total_sells);
-        document.getElementById('net-invested').textContent = fmt(data.net_invested);
+
+        document.getElementById('total-invested').textContent = fmtMoney(data.total_buys);
+        document.getElementById('total-sells').textContent = fmtMoney(data.total_sells);
+        document.getElementById('net-invested').textContent = fmtMoney(data.net_invested);
 
         const profitEl = document.getElementById('total-profit');
-        profitEl.textContent = fmt(data.total_profit);
+        profitEl.textContent = fmtMoney(data.total_profit);
         profitEl.classList.remove('positive', 'negative');
         if (data.total_profit > 0) profitEl.classList.add('positive');
         else if (data.total_profit < 0) profitEl.classList.add('negative');
 
         document.getElementById('num-trades').textContent = data.num_trades;
+
+        // summary cards
+        const sumProfit = document.getElementById('summary-profit');
+        const sumTrades = document.getElementById('summary-trades');
+        if (sumProfit) {
+          sumProfit.textContent = fmtMoney(data.total_profit);
+          sumProfit.classList.remove('summary-profit-positive', 'summary-profit-negative');
+          if (data.total_profit > 0) sumProfit.classList.add('summary-profit-positive');
+          else if (data.total_profit < 0) sumProfit.classList.add('summary-profit-negative');
+        }
+        if (sumTrades) {
+          sumTrades.textContent = data.num_trades;
+        }
       } catch (err) {
         showError(err.message);
       }
@@ -1018,7 +1475,7 @@
     }
 
     async function loadPriceHistory() {
-      if (!currentUser) return; // no user yet
+      if (!currentUser) return;
       try {
         const symbol = document.getElementById('chart-symbol').value;
         const data = await fetchUserJSON(`/api/price_history/${symbol}`);
@@ -1032,17 +1489,30 @@
               label: `${data.symbol} price`,
               data: data.prices,
               borderWidth: 2,
-              tension: 0.3
+              tension: 0.35,
+              pointRadius: 0,
             }]
           },
           options: {
             responsive: true,
+            animation: {
+              duration: 900,
+              easing: 'easeOutQuad'
+            },
             plugins: {
               legend: { display: true }
             },
             scales: {
-              x: { display: true },
-              y: { display: true }
+              x: {
+                display: true,
+                ticks: { color: '#9ca3af' },
+                grid: { color: 'rgba(31,41,55,0.6)' }
+              },
+              y: {
+                display: true,
+                ticks: { color: '#9ca3af' },
+                grid: { color: 'rgba(31,41,55,0.6)' }
+              }
             }
           }
         });
@@ -1086,6 +1556,7 @@
       }
       const modeInput = document.querySelector(`input[name="mode"][value="${currentMode}"]`);
       if (modeInput) modeInput.checked = true;
+      updateModeChip();
 
       // Attach listeners for mode toggle
       document
