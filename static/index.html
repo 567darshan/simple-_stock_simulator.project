@@ -5,53 +5,163 @@
   <title>Simple Stock Simulator</title>
 
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23007bff'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%2300ff7f'/%3E%3C/svg%3E">
 
-  <!-- Stylesheet: keep /static path if your app serves it there -->
+  <!-- local stylesheet (kept for other pages) -->
   <link rel="stylesheet" href="/static/style.css">
 
   <!-- Chart.js for price history -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Consolidated local theme CSS (keeps everything self-contained) -->
+  <style>
+    /* ---------- CORE LAYOUT ---------- */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #0ea5e9 0, #0f172a 40%, #020617 100%);
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1, h2, h3 { margin: 0; }
+
+    /* header */
+    .app-header { width: 100%; display:flex; justify-content:center; padding:20px 16px 0; }
+    .header-top-row {
+      width: 100%; max-width:1200px;
+      background: linear-gradient(120deg, rgba(56,189,248,0.96), rgba(16,185,129,0.96));
+      border-radius: 24px; padding: 18px 24px; display:flex; justify-content:space-between; align-items:center;
+      box-shadow: 0 24px 60px rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.15);
+    }
+    .header-top-row h1 {
+      font-size: 28px; font-weight: 800;
+      background: linear-gradient(90deg,#fff,#c3f0ff,#80eaff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .subtitle { margin-top:4px; font-size:14px; color:#e0f2fe; font-weight:500; }
+    .header-controls { display:flex; gap:18px; align-items:center; }
+
+    .user-bar { display:flex; flex-direction:column; align-items:flex-start; }
+    .user-bar > div { display:flex; align-items:center; }
+    .user-bar label { font-size:13px; font-weight:500; margin-right:6px; color:#0f172a; }
+    .user-bar input {
+      padding:6px 10px; border-radius:999px; border:1px solid rgba(15,118,110,0.8);
+      background: rgba(15,23,42,0.95); color:#e5e7eb; min-width:150px; font-size:13px;
+    }
+    #login-btn {
+      padding:6px 14px; border-radius:999px; border:none; cursor:pointer; font-weight:600;
+      background: radial-gradient(circle at top left, #22c55e, #16a34a); color:#000;
+      box-shadow: 0 0 14px rgba(22,163,74,0.9);
+    }
+
+    /* mode chip */
+    .mode-bar { display:flex; align-items:center; gap:8px; background:rgba(15,23,42,0.9); padding:6px 10px; border-radius:999px; border:1px solid rgba(34,197,94,0.5); }
+    .mode-label { font-size:12px; color:#e5e7eb; opacity:0.9; }
+    .mode-chip { display:inline-block; margin-left:8px; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.06em; }
+    .mode-chip-sim { background: rgba(22,163,74,0.15); border-color: rgba(34,197,94,0.9); color: #bbf7d0; }
+
+    /* main container */
+    .app-container {
+      width:100%; max-width:1200px; margin:18px auto 32px; padding:16px 24px 28px;
+      background: radial-gradient(circle at top left, #0b1120 0, #020617 60%, #020617 100%); border-radius:26px;
+      box-shadow:0 22px 70px rgba(15,23,42,1); border:1px solid rgba(148,163,184,0.12);
+    }
+
+    /* ticker */
+    .ticker-shell { margin-bottom:12px; border-radius:999px; padding:4px; background: linear-gradient(90deg, rgba(34,197,94,0.12), rgba(56,189,248,0.12)); }
+    .ticker { position:relative; overflow:hidden; border-radius:999px; padding:6px 0; background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.9)); }
+    .ticker-label { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:11px; text-transform:uppercase; letter-spacing:0.18em; color:#facc15; font-weight:700; }
+    .ticker-track { display:inline-block; white-space:nowrap; padding-left:90px; animation:tickerScroll 28s linear infinite; }
+    .ticker-item { display:inline-flex; align-items:baseline; gap:8px; margin-right:32px; font-size:12px; }
+    .ticker-sym { font-weight:700; color:#e5e7eb; }
+    .ticker-price { color:#cbd5f5; font-variant-numeric:tabular-nums; }
+    .ticker-up { color:#22c55e; }
+    .ticker-down { color:#f97316; }
+    @keyframes tickerScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    /* nav & buttons */
+    .app-nav { display:flex; overflow-x:auto; padding-bottom:6px; margin-bottom:14px; gap:10px; }
+    .nav-btn { border-radius:999px; padding:8px 18px; background: radial-gradient(circle at top left, #111827, #020617); color:#e5e7eb; border:1px solid rgba(31,41,55,0.9); cursor:pointer; font-weight:600; }
+    .nav-btn-active { background: linear-gradient(135deg,#22c55e,#3b82f6); color:#fff; box-shadow:0 0 18px rgba(59,130,246,1); }
+
+    /* summary cards */
+    .summary-row { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+    .summary-card { flex:1 1 220px; min-width:200px; padding:12px 16px; border-radius:18px; position:relative; overflow:hidden; border:1px solid rgba(55,65,81,0.9); background: radial-gradient(circle at top left, #111827, #020617 70%); }
+    .summary-label { font-size:11px; color:#cbd5f5; text-transform:uppercase; }
+    .summary-value { font-size:20px; font-weight:700; color:#f9fafb; font-variant-numeric:tabular-nums; }
+
+    /* sections */
+    .section { display:none; margin-bottom:16px; border-radius:22px; padding:18px 20px 20px; background: radial-gradient(circle at top left, #0b1120, #020617 65%); border:1px solid rgba(51,65,85,0.9); box-shadow:0 14px 40px rgba(15,23,42,0.95); }
+    .section.active { display:block; animation:fadeInSection 0.35s ease-out; }
+    @keyframes fadeInSection { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+    .section h2 { font-size:20px; color:#f9fafb; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+
+    /* forms */
+    label { font-size:14px; display:inline-flex; gap:6px; color:#e5e7eb; }
+    select, input[type="number"], input[type="text"] { padding:7px 10px; border-radius:999px; border:1px solid rgba(55,65,81,0.9); background: rgba(15,23,42,0.95); color:#e5e7eb; font-size:13px; outline:none; min-width:120px; }
+
+    .primary-btn { padding:8px 22px; border-radius:999px; border:none; cursor:pointer; font-size:14px; font-weight:600; color:#020617; background: radial-gradient(circle at top left, #22c55e, #16a34a); box-shadow:0 0 14px rgba(34,197,94,0.9); margin-top:10px; margin-right:8px; }
+    .sell-btn { background: radial-gradient(circle at top left, #f97316, #ef4444); box-shadow:0 0 14px rgba(248,113,113,1); }
+
+    /* MARKET TABLE (visible and accessible) */
+    table { width:100%; border-collapse:collapse; margin-top:8px; font-size:13px; background:#071324; border-radius:12px; overflow:hidden; box-shadow:0 12px 28px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.03); }
+    thead { background: linear-gradient(90deg,#06202b,#05202a); }
+    thead th { text-align:left; padding:12px 14px; font-weight:700; color:#9ca3af; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    tbody tr:nth-child(odd) { background: rgba(255,255,255,0.01); }
+    tbody td { padding:14px; border-bottom:1px solid rgba(255,255,255,0.02); color:#e6eefb; font-size:14px; }
+    .market-symbol-pill { display:inline-block; padding:6px 12px; border-radius:999px; background: linear-gradient(90deg,#10b981,#06b6d4); color:#021012; font-weight:700; }
+    .market-price-cell { text-align:right; }
+    .market-price-text { font-variant-numeric: tabular-nums; font-weight:700; color:#e5e7eb; }
+
+    .price-up { color:#bbf7d0; text-shadow:0 0 8px rgba(34,197,94,0.9); animation:priceUpPulse 0.5s ease-out; }
+    .price-down { color:#fecaca; text-shadow:0 0 8px rgba(248,113,113,0.9); animation:priceDownPulse 0.5s ease-out; }
+
+    @keyframes priceUpPulse { 0%{transform:translateY(-1px) scale(1.06)} 100%{transform:translateY(0) scale(1)} }
+    @keyframes priceDownPulse { 0%{transform:translateY(1px) scale(0.96)} 100%{transform:translateY(0) scale(1)} }
+
+    /* messages */
+    #message, #error { margin-bottom:12px; padding:8px 12px; border-radius:999px; font-size:13px; display:none; }
+    #message { background:rgba(22,163,74,0.12); border:1px solid rgba(34,197,94,0.6); color:#bbf7d0; }
+    #error { background:rgba(153,27,27,0.12); border:1px solid rgba(239,68,68,0.6); color:#fecaca; }
+
+    /* responsive tweaks */
+    @media (max-width:900px) { .header-top-row { flex-direction:column; align-items:flex-start; gap:12px; } .summary-row { flex-direction:column; } }
+    @media (max-width:640px) { .app-container { padding:16px 12px 20px; } .ticker-track { padding-left:36px; } }
+
+  </style>
 </head>
 <body>
 
   <!-- HEADER -->
   <div class="app-header">
     <div class="header-top-row">
-      <div class="title-block">
+      <div>
         <h1>Simple Stock Simulator</h1>
-        <div class="subtitle">
-          Simulated date: <span id="sim-date"></span>
-        </div>
+        <div class="subtitle">Simulated date: <span id="sim-date"></span></div>
       </div>
 
       <!-- USER + MODE CONTROLS -->
       <div class="header-controls">
         <!-- Login / User select -->
         <div class="user-bar">
-          <div class="user-input-row">
+          <div>
             <label for="username-input">User:</label>
-            <input
-              id="username-input"
-              type="text"
-              placeholder="e.g. darshan"
-            />
+            <input id="username-input" type="text" placeholder="e.g. darshan" />
             <button id="login-btn">Login</button>
           </div>
           <span id="current-user-label" class="current-user-label"></span>
         </div>
 
-        <!-- Mode toggle -->
-        <div class="mode-bar">
+        <!-- Mode chip (simulation only: live removed) -->
+        <div class="mode-bar" aria-hidden="false">
           <span class="mode-label">Mode:</span>
-          <label class="mode-pill">
-            <input type="radio" name="mode" value="simulation" checked>
-            <span>Simulation (demo)</span>
-          </label>
-          <label class="mode-pill">
-            <input type="radio" name="mode" value="live">
-            <span>Real Data (live)</span>
-          </label>
+          <div class="mode-chip mode-chip-sim" title="Simulation only">SIMULATION</div>
         </div>
       </div>
     </div>
@@ -60,160 +170,160 @@
   <!-- MAIN CONTENT -->
   <div class="app-container">
 
+    <!-- LIVE TICKER -->
+    <div class="ticker-shell">
+      <div class="ticker">
+        <span class="ticker-label">LIVE TICKER</span>
+        <div id="ticker-track" class="ticker-track"></div>
+      </div>
+    </div>
+
     <!-- NAVIGATION TABS -->
     <div class="app-nav">
-      <button class="nav-btn nav-btn-active" data-section="trade" onclick="showSection('trade')">
-        <div class="nav-icon">✅</div>
-        <div class="nav-label">Trade</div>
-      </button>
-
-      <button class="nav-btn" data-section="simulate" onclick="showSection('simulate')">
-        <div class="nav-icon">⏭️</div>
-        <div class="nav-label">Simulate</div>
-      </button>
-
       <button class="nav-btn" data-section="market" onclick="showSection('market')">
         <div class="nav-icon">📈</div>
         <div class="nav-label">Market</div>
       </button>
-
+      <button class="nav-btn nav-btn-active" data-section="trade" onclick="showSection('trade')">
+        <div class="nav-icon">✅</div>
+        <div class="nav-label">Trade</div>
+      </button>
+      <button class="nav-btn" data-section="simulate" onclick="showSection('simulate')">
+        <div class="nav-icon">⏭️</div>
+        <div class="nav-label">Simulate</div>
+      </button>
+      </button>
       <button class="nav-btn" data-section="portfolio" onclick="showSection('portfolio')">
         <div class="nav-icon">💼</div>
         <div class="nav-label">Portfolio</div>
       </button>
-
       <button class="nav-btn" data-section="summary" onclick="showSection('summary')">
         <div class="nav-icon">📊</div>
         <div class="nav-label">Summary</div>
       </button>
-
       <button class="nav-btn" data-section="history" onclick="showSection('history')">
         <div class="nav-icon">📜</div>
         <div class="nav-label">History</div>
       </button>
-
       <button class="nav-btn" data-section="chart" onclick="showSection('chart')">
         <div class="nav-icon">📉</div>
         <div class="nav-label">Chart</div>
       </button>
     </div>
 
-    <!-- GLOBAL MESSAGES -->
-    <div id="message" class="msg success"></div>
-    <div id="error" class="msg error"></div>
+    <!-- SUMMARY CARDS -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="summary-label">Net Worth</div>
+        <div class="summary-value" id="summary-networth">₹0.00</div>
+        <div class="summary-pill">Total value of your account</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Profit / Loss</div>
+        <div class="summary-value" id="summary-profit">₹0.00</div>
+        <div class="summary-pill">vs starting ₹10,000</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Cash</div>
+        <div class="summary-value" id="summary-cash">₹0.00</div>
+        <div class="summary-pill">Available to trade</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Trades</div>
+        <div class="summary-value" id="summary-trades">0</div>
+        <div class="summary-pill">Total executed</div>
+      </div>
+    </div>
 
-    <!-- 1. TRADE SECTION -->
+    <!-- MESSAGES -->
+    <div id="message"></div>
+    <div id="error"></div>
+
+    <!-- TRADE SECTION -->
     <div class="section active" id="section-trade">
       <h2>Trade</h2>
       <p>Choose a stock and quantity, then buy or sell at current market price.</p>
-      <label>
-        Symbol:
+      <label> Symbol:
         <select id="symbol-input">
           <option value="ABC">ABC</option>
           <option value="XYZ">XYZ</option>
           <option value="FOO">FOO</option>
           <option value="BAR">BAR</option>
         </select>
-      </label>
-      <br>
-      <label>
-        Quantity:
+      </label><br>
+      <label> Quantity:
         <input type="number" id="qty-input" placeholder="Qty" min="1" value="1">
-      </label>
-      <br>
-      <div class="action-row">
-        <button class="primary-btn buy-btn" onclick="buy()">BUY</button>
-        <button class="primary-btn sell-btn" onclick="sell()">SELL</button>
-      </div>
+      </label><br>
+      <button class="primary-btn" onclick="buy()">BUY</button>
+      <button class="primary-btn sell-btn" onclick="sell()">SELL</button>
     </div>
 
-    <!-- 2. SIMULATE DAYS SECTION -->
+    <!-- SIMULATE -->
     <div class="section" id="section-simulate">
       <h2>Simulate Days</h2>
       <p>Move the simulated market forward in time to see how prices evolve.</p>
-      <label>
-        Custom days:
-        <input type="number" id="days-input" value="1" min="1">
-      </label>
-      <br>
+      <label> Custom days: <input type="number" id="days-input" value="1" min="1"></label><br>
       <button class="primary-btn" onclick="advanceDays()">Run</button>
-      <hr>
+      <hr style="opacity:0.08">
       <p>Quick presets:</p>
-      <div class="preset-row">
-        <button class="secondary" onclick="advanceDaysPreset(1)">1 day</button>
-        <button class="secondary" onclick="advanceDaysPreset(7)">7 days</button>
-        <button class="secondary" onclick="advanceDaysPreset(30)">30 days</button>
-        <button class="secondary" onclick="advanceDaysPreset(365)">1 year</button>
-      </div>
+      <button class="secondary" onclick="advanceDaysPreset(1)">1 day</button>
+      <button class="secondary" onclick="advanceDaysPreset(7)">7 days</button>
+      <button class="secondary" onclick="advanceDaysPreset(30)">30 days</button>
+      <button class="secondary" onclick="advanceDaysPreset(365)">1 year</button>
     </div>
 
-    <!-- 3. MARKET PRICES SECTION -->
+    <!-- MARKET PRICES -->
     <div class="section" id="section-market">
-      <h2>Market Prices</h2>
-      <p>
-        Prices for all available stocks.
-        <span class="mode-hint">(changes with Simulation / Real Data mode)</span>
-      </p>
-      <table>
+      <h2>Market Prices <span id="mode-chip" class="mode-chip mode-chip-sim">SIMULATION</span></h2>
+      <p>Prices for all available stocks. <span class="mode-hint">(updates based on the selected mode)</span></p>
+      <table aria-label="Market prices">
         <thead>
-          <tr><th>Symbol</th><th>Price</th></tr>
+          <tr><th>Symbol</th><th style="text-align:right;">Price</th></tr>
         </thead>
         <tbody id="prices-body"></tbody>
       </table>
     </div>
 
-    <!-- 4. PORTFOLIO SECTION -->
+    <!-- PORTFOLIO -->
     <div class="section" id="section-portfolio">
       <h2>Portfolio</h2>
       <p>Overview of your cash and holdings for the current user.</p>
-      <p>Cash: <span id="cash">-</span></p>
-      <p>Net Worth: <span id="net-worth">-</span></p>
+      <p>Cash: <span id="cash"></span></p>
+      <p>Net Worth: <span id="net-worth"></span></p>
       <button class="secondary" onclick="resetPortfolio()">Reset Portfolio</button>
       <table>
-        <thead>
-          <tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Value</th></tr>
-        </thead>
+        <thead><tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead>
         <tbody id="holdings-body"></tbody>
       </table>
     </div>
 
-    <!-- 5. SUMMARY SECTION -->
+    <!-- SUMMARY STATS -->
     <div class="section" id="section-summary">
       <h2>Summary Stats</h2>
-      <p>Total invested (buys): <span id="total-invested" class="stats-value">-</span></p>
-      <p>Total from sells: <span id="total-sells" class="stats-value">-</span></p>
-      <p>Net invested: <span id="net-invested" class="stats-value">-</span></p>
-      <p>Total profit (vs 10,000): <span id="total-profit" class="stats-value">-</span></p>
-      <p>Number of trades: <span id="num-trades" class="stats-value">-</span></p>
+      <p>Total invested (buys): <span id="total-invested" class="stats-value"></span></p>
+      <p>Total from sells: <span id="total-sells" class="stats-value"></span></p>
+      <p>Net invested: <span id="net-invested" class="stats-value"></span></p>
+      <p>Total profit (vs 10,000): <span id="total-profit" class="stats-value"></span></p>
+      <p>Number of trades: <span id="num-trades" class="stats-value"></span></p>
     </div>
 
-    <!-- 6. TRADE HISTORY SECTION -->
+    <!-- HISTORY -->
     <div class="section" id="section-history">
       <h2>Trade History</h2>
       <p>List of all executed trades for the current user.</p>
       <button class="secondary" onclick="loadHistory()">Refresh History</button>
       <div class="history-wrapper">
         <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Symbol</th>
-              <th>Qty</th>
-              <th>Price</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Symbol</th><th>Qty</th><th>Price</th></tr></thead>
           <tbody id="history-body"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- 7. PRICE HISTORY CHART SECTION -->
+    <!-- CHART -->
     <div class="section" id="section-chart">
       <h2>Price History Chart</h2>
-      <p>Visualize the price movement of a stock over time.</p>
-      <label>
-        Symbol:
+      <label> Symbol:
         <select id="chart-symbol" onchange="loadPriceHistory()">
           <option value="ABC">ABC</option>
           <option value="XYZ">XYZ</option>
@@ -221,23 +331,19 @@
           <option value="BAR">BAR</option>
         </select>
       </label>
-      <div class="chart-container">
-        <canvas id="priceChart"></canvas>
-      </div>
+      <div class="chart-container"><canvas id="priceChart"></canvas></div>
     </div>
-
-    <!-- Toast notifications (optional, currently unused) -->
-    <div id="toast-container"></div>
 
   </div> <!-- end app-container -->
 
-  <!-- JS (UNCHANGED LOGIC + checkLiveEndpoint) -->
+  <!-- JS (unchanged except small fixes) -->
   <script>
     let priceChart = null;
+    let currentUser = null;
+    let currentMode = 'simulation';
+    let lastPrices = {};
 
-    // ---- LOGIN + MODE STATE ----
-    let currentUser = null;           // e.g. "darshan"
-    let currentMode = 'simulation';   // "simulation" or "live"
+    function fmtMoney(x) { return '₹' + Number(x).toFixed(2); }
 
     function setCurrentUser(username) {
       currentUser = username;
@@ -246,53 +352,23 @@
       lbl.textContent = username ? `Logged in as: ${username}` : '';
     }
 
-    function setMode(mode) {
-      currentMode = mode;
-      localStorage.setItem('mode', mode);
-      // When mode changes, re-load prices (and chart)
-      if (currentUser) {
-        loadPrices();
-        loadPriceHistory();
-      }
+    function updateModeChip() {
+      const chip = document.getElementById('mode-chip');
+      if (!chip) return;
+      chip.textContent = 'SIMULATION';
+      chip.className = 'mode-chip mode-chip-sim';
     }
 
-    // Append ?user=<username> to the given path
-    function withUser(path) {
-      if (!currentUser) {
-        alert('Please login first.');
-        throw new Error('No user selected');
-      }
-      const sep = path.includes('?') ? '&' : '?';
-      return `${path}${sep}user=${encodeURIComponent(currentUser)}`;
-    }
-
-    // Decide which prices endpoint to use
-    function getPricesPath() {
-      if (currentMode === 'live') {
-        return '/api/prices_live';  // your friend will implement this
-      }
-      return '/api/prices';
-    }
-
-    // ---- SECTION NAVIGATION ----
     function showSection(name) {
-      document.querySelectorAll('.section').forEach(sec => {
-        sec.classList.remove('active');
-      });
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('nav-btn-active');
-      });
-
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-btn-active'));
       const section = document.getElementById('section-' + name);
       if (section) section.classList.add('active');
-
       const btn = document.querySelector(`.nav-btn[data-section="${name}"]`);
       if (btn) btn.classList.add('nav-btn-active');
-
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ---- API HELPERS ----
     async function fetchJSON(url, options) {
       const res = await fetch(url, options);
       const data = await res.json();
@@ -300,336 +376,188 @@
       return data;
     }
 
-    async function fetchUserJSON(path, options) {
-      const url = withUser(path);
-      return fetchJSON(url, options);
+    function withUser(path) {
+      if (!currentUser) { alert('Please login first.'); throw new Error('No user selected'); }
+      const sep = path.includes('?') ? '&' : '?';
+      return `${path}${sep}user=${encodeURIComponent(currentUser)}`;
     }
 
-    // ---- NEW: checkLiveEndpoint (Option B) ----
-    async function checkLiveEndpoint() {
-      try {
-        // include ?user= if currentUser set, otherwise try without user
-        const url = currentUser ? withUser('/api/prices_live') : '/api/prices_live';
-        const res = await fetch(url, { method: 'GET' });
-        if (!res.ok) throw new Error('live endpoint not available');
-        console.info('Live prices endpoint available.');
-      } catch (e) {
-        // Disable the live radio input(s) and visually dim the label
-        document.querySelectorAll('input[name="mode"][value="live"]').forEach(inp => {
-          inp.disabled = true;
-          const lbl = inp.nextElementSibling;
-          if (lbl && lbl.style) {
-            lbl.style.opacity = '0.45';
-            lbl.style.cursor = 'not-allowed';
-          }
-          if (inp.checked) {
-            const sim = document.querySelector('input[name="mode"][value="simulation"]');
-            if (sim) {
-              sim.checked = true;
-              setMode('simulation');
-            }
-          }
-        });
-        console.info('Live prices endpoint not found — Live mode disabled.');
-      }
+    function renderTicker(prices) {
+      const track = document.getElementById('ticker-track'); if (!track) return;
+      track.innerHTML = '';
+      const entries = Object.entries(prices);
+      if (!entries.length) return;
+      const makeItemsHTML = () => entries.map(([sym, price]) => {
+        const p = Number(price);
+        let cls = '';
+        if (lastPrices[sym] !== undefined) {
+          const old = Number(lastPrices[sym]);
+          if (p > old) cls = 'ticker-up';
+          else if (p < old) cls = 'ticker-down';
+        }
+        return `<span class="ticker-item"><span class="ticker-sym">${sym}</span><span class="ticker-price ${cls}">${p.toFixed(2)}</span></span>`;
+      }).join('');
+      const html = makeItemsHTML();
+      track.innerHTML = html + html;
     }
 
-    // ---- LOAD FUNCTIONS ----
     async function loadPrices() {
       try {
-        const path = getPricesPath();
-        const data = await fetchUserJSON(path);
-        if (data.date) {
-          document.getElementById('sim-date').textContent = data.date;
-        }
-        const tbody = document.getElementById('prices-body');
-        tbody.innerHTML = '';
-        for (const [sym, price] of Object.entries(data.prices)) {
+        const data = await fetchJSON(withUser('/api/prices'));
+        if (data.date) document.getElementById('sim-date').textContent = data.date;
+        const tbody = document.getElementById('prices-body'); tbody.innerHTML = '';
+        for (const [sym, rawPrice] of Object.entries(data.prices)) {
+          const priceNum = Number(rawPrice);
+          let changeClass = 'market-price-text';
+          if (lastPrices[sym] !== undefined) {
+            const old = Number(lastPrices[sym]);
+            if (priceNum > old) changeClass = 'price-up';
+            else if (priceNum < old) changeClass = 'price-down';
+          }
+          let arrow = `<span class="trend-arrow arrow-same">•</span>`;
+          if (lastPrices[sym] !== undefined) {
+            const old = Number(lastPrices[sym]);
+            if (priceNum > old) arrow = `<span class="trend-arrow arrow-up">▲</span>`;
+            else if (priceNum < old) arrow = `<span class="trend-arrow arrow-down">▼</span>`;
+          }
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${sym}</td><td>${Number(price).toFixed(2)}</td>`;
+          tr.innerHTML = `<td><span class="market-symbol-pill">${sym}</span></td>
+                          <td class="market-price-cell"><span class="${changeClass}">${priceNum.toFixed(2)}</span> ${arrow}</td>`;
           tbody.appendChild(tr);
         }
+        renderTicker(data.prices);
+        lastPrices = { ...data.prices };
       } catch (err) {
-        showError(err.message);
+        showError(err.message || String(err));
       }
     }
 
     async function loadPortfolio() {
       try {
-        const data = await fetchUserJSON('/api/portfolio');
-        document.getElementById('cash').textContent = data.cash.toFixed(2);
-        document.getElementById('net-worth').textContent = data.net_worth.toFixed(2);
-        const tbody = document.getElementById('holdings-body');
-        tbody.innerHTML = '';
+        const data = await fetchJSON(withUser('/api/portfolio'));
+        document.getElementById('cash').textContent = fmtMoney(data.cash);
+        document.getElementById('net-worth').textContent = fmtMoney(data.net_worth);
+        const cashEl = document.getElementById('summary-cash'), netEl = document.getElementById('summary-networth');
+        if (cashEl) cashEl.textContent = fmtMoney(data.cash); if (netEl) netEl.textContent = fmtMoney(data.net_worth);
+        const tbody = document.getElementById('holdings-body'); tbody.innerHTML = '';
         for (const h of data.holdings) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${h.symbol}</td>
-            <td>${h.qty}</td>
-            <td>${h.price !== null ? Number(h.price).toFixed(2) : '-'}</td>
-            <td>${h.value !== null ? Number(h.value).toFixed(2) : '-'}</td>`;
+          tr.innerHTML = `<td>${h.symbol}</td><td>${h.qty}</td><td>${h.price !== null ? Number(h.price).toFixed(2) : '-'}</td><td>${h.value !== null ? Number(h.value).toFixed(2) : '-'}</td>`;
           tbody.appendChild(tr);
         }
-      } catch (err) {
-        showError(err.message);
-      }
+      } catch (err) { showError(err.message || String(err)); }
     }
 
     async function loadStats() {
       try {
-        const data = await fetchUserJSON('/api/stats');
-        const fmt = (x) => Number(x).toFixed(2);
-        document.getElementById('total-invested').textContent = fmt(data.total_buys);
-        document.getElementById('total-sells').textContent = fmt(data.total_sells);
-        document.getElementById('net-invested').textContent = fmt(data.net_invested);
-
-        const profitEl = document.getElementById('total-profit');
-        profitEl.textContent = fmt(data.total_profit);
-        profitEl.classList.remove('positive', 'negative');
-        if (data.total_profit > 0) profitEl.classList.add('positive');
-        else if (data.total_profit < 0) profitEl.classList.add('negative');
-
+        const data = await fetchJSON(withUser('/api/stats'));
+        document.getElementById('total-invested').textContent = fmtMoney(data.total_buys);
+        document.getElementById('total-sells').textContent = fmtMoney(data.total_sells);
+        document.getElementById('net-invested').textContent = fmtMoney(data.net_invested);
+        const profitEl = document.getElementById('total-profit'); profitEl.textContent = fmtMoney(data.total_profit);
+        profitEl.classList.remove('positive','negative'); if (data.total_profit>0) profitEl.classList.add('positive'); else if (data.total_profit<0) profitEl.classList.add('negative');
         document.getElementById('num-trades').textContent = data.num_trades;
-      } catch (err) {
-        showError(err.message);
-      }
+        const sumProfit = document.getElementById('summary-profit'), sumTrades = document.getElementById('summary-trades');
+        if (sumProfit) { sumProfit.textContent = fmtMoney(data.total_profit); sumProfit.classList.remove('summary-profit-positive','summary-profit-negative'); if (data.total_profit>0) sumProfit.classList.add('summary-profit-positive'); else if (data.total_profit<0) sumProfit.classList.add('summary-profit-negative'); }
+        if (sumTrades) sumTrades.textContent = data.num_trades;
+      } catch (err) { showError(err.message || String(err)); }
     }
 
     async function advanceDays() {
       clearMessages();
       const days = parseInt(document.getElementById('days-input').value || '1', 10);
-      if (!currentUser) {
-        showError('Please login first.');
-        return;
-      }
+      if (!currentUser) { showError('Please login first.'); return; }
       try {
-        const data = await fetchUserJSON('/api/next', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ days }),
-        });
-        showMessage(data.message + (data.date ? ' New date: ' + data.date : ''));
+        const data = await fetchJSON(withUser('/api/next'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({days}) });
+        showMessage((data.message||'') + (data.date ? ' New date: ' + data.date : ''));
         await loadAllData();
-      } catch (err) {
-        showError(err.message);
-      }
+      } catch (err) { showError(err.message || String(err)); }
     }
-
-    function advanceDaysPreset(days) {
-      document.getElementById('days-input').value = days;
-      advanceDays();
-    }
+    function advanceDaysPreset(d){ document.getElementById('days-input').value = d; advanceDays(); }
 
     async function buy() {
       clearMessages();
       const symbol = document.getElementById('symbol-input').value.trim();
       const qty = parseInt(document.getElementById('qty-input').value || '0', 10);
-      if (!symbol || qty <= 0) {
-        showError('Enter symbol and positive quantity.');
-        return;
-      }
-      if (!currentUser) {
-        showError('Please login first.');
-        return;
-      }
+      if (!symbol || qty <= 0) { showError('Enter symbol and positive quantity.'); return; }
+      if (!currentUser) { showError('Please login first.'); return; }
       try {
-        const data = await fetchUserJSON('/api/buy', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ symbol, qty }),
-        });
-        showMessage(data.message || 'Buy executed.');
-        await loadAllData();
-      } catch (err) {
-        showError(err.message);
-      }
+        const data = await fetchJSON(withUser('/api/buy'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ symbol, qty }) });
+        showMessage(data.message || 'Buy executed.'); await loadAllData();
+      } catch (err) { showError(err.message || String(err)); }
     }
 
     async function sell() {
       clearMessages();
       const symbol = document.getElementById('symbol-input').value.trim();
       const qty = parseInt(document.getElementById('qty-input').value || '0', 10);
-      if (!symbol || qty <= 0) {
-        showError('Enter symbol and positive quantity.');
-        return;
-      }
-      if (!currentUser) {
-        showError('Please login first.');
-        return;
-      }
+      if (!symbol || qty <= 0) { showError('Enter symbol and positive quantity.'); return; }
+      if (!currentUser) { showError('Please login first.'); return; }
       try {
-        const data = await fetchUserJSON('/api/sell', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ symbol, qty }),
-        });
-        showMessage(data.message || 'Sell executed.');
-        await loadAllData();
-      } catch (err) {
-        showError(err.message);
-      }
+        const data = await fetchJSON(withUser('/api/sell'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ symbol, qty }) });
+        showMessage(data.message || 'Sell executed.'); await loadAllData();
+      } catch (err) { showError(err.message || String(err)); }
     }
 
     async function loadHistory() {
-      if (!currentUser) {
-        showError('Please login first.');
-        return;
-      }
+      if (!currentUser) { showError('Please login first.'); return; }
       try {
-        const data = await fetchUserJSON('/api/history');
-        const tbody = document.getElementById('history-body');
-        tbody.innerHTML = '';
+        const data = await fetchJSON(withUser('/api/history'));
+        const tbody = document.getElementById('history-body'); tbody.innerHTML = '';
         for (const t of data.trades) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${t.date}</td>
-            <td>${t.type}</td>
-            <td>${t.symbol}</td>
-            <td>${t.qty}</td>
-            <td>${Number(t.price).toFixed(2)}</td>`;
-          tbody.appendChild(tr);
+          const tr = document.createElement('tr'); tr.innerHTML = `<td>${t.date}</td><td>${t.type}</td><td>${t.symbol}</td><td>${t.qty}</td><td>${Number(t.price).toFixed(2)}</td>`; tbody.appendChild(tr);
         }
-      } catch (err) {
-        showError(err.message);
-      }
+      } catch (err) { showError(err.message || String(err)); }
     }
 
     async function resetPortfolio() {
       clearMessages();
-      if (!currentUser) {
-        showError('Please login first.');
-        return;
-      }
+      if (!currentUser) { showError('Please login first.'); return; }
       try {
-        const data = await fetchUserJSON('/api/reset', {
-          method: 'POST'
-        });
-        showMessage(data.message || 'Portfolio reset.');
-        await loadAllData();
-      } catch (err) {
-        showError(err.message);
-      }
+        const data = await fetchJSON(withUser('/api/reset'), { method: 'POST' });
+        showMessage(data.message || 'Portfolio reset.'); await loadAllData();
+      } catch (err) { showError(err.message || String(err)); }
     }
 
     async function loadPriceHistory() {
-      if (!currentUser) return; // no user yet
+      if (!currentUser) return;
       try {
         const symbol = document.getElementById('chart-symbol').value;
-        const data = await fetchUserJSON(`/api/price_history/${symbol}`);
+        const data = await fetchJSON(withUser(`/api/price_history/${symbol}`));
         const ctx = document.getElementById('priceChart').getContext('2d');
         if (priceChart) priceChart.destroy();
         priceChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: data.dates,
-            datasets: [{
-              label: `${data.symbol} price`,
-              data: data.prices,
-              borderWidth: 2,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: true }
-            },
-            scales: {
-              x: { display: true },
-              y: { display: true }
-            }
-          }
+          type:'line',
+          data:{ labels: data.dates, datasets:[{ label: `${data.symbol} price`, data: data.prices, borderWidth:2, tension:0.35, pointRadius:0 }]},
+          options:{ responsive:true, animation:{ duration:900, easing:'easeOutQuad' }, plugins:{ legend:{ display:true }}, scales:{ x:{ ticks:{ color:'#9ca3af' }, grid:{ color:'rgba(31,41,55,0.6)' }}, y:{ ticks:{ color:'#9ca3af' }, grid:{ color:'rgba(31,41,55,0.6)' } } } }
         });
-      } catch (err) {
-        showError(err.message);
-      }
+      } catch (err) { showError(err.message || String(err)); }
     }
 
-    async function loadAllData() {
-      await loadPrices();
-      await loadPortfolio();
-      await loadStats();
-      await loadHistory();
-      await loadPriceHistory();
-    }
+    async function loadAllData() { await loadPrices(); await loadPortfolio(); await loadStats(); await loadHistory(); await loadPriceHistory(); }
 
-    // ---- MESSAGES ----
-    function showMessage(msg) {
-      const el = document.getElementById('message');
-      el.textContent = msg;
-      el.style.display = msg ? 'block' : 'none';
-    }
+    function showMessage(msg) { const el=document.getElementById('message'); el.textContent=msg; el.style.display = msg ? 'block' : 'none'; }
+    function showError(msg) { const el=document.getElementById('error'); el.textContent=msg; el.style.display = msg ? 'block' : 'none'; }
+    function clearMessages() { showMessage(''); showError(''); }
 
-    function showError(msg) {
-      const el = document.getElementById('error');
-      el.textContent = msg;
-      el.style.display = msg ? 'block' : 'none';
-    }
-
-    function clearMessages() {
-      showMessage('');
-      showError('');
-    }
-
-    // ---- INIT ----
     document.addEventListener('DOMContentLoaded', () => {
-      // Restore mode
-      const savedMode = localStorage.getItem('mode');
-      if (savedMode === 'simulation' || savedMode === 'live') {
-        currentMode = savedMode;
-      }
-      const modeInput = document.querySelector(`input[name="mode"][value="${currentMode}"]`);
-      if (modeInput) modeInput.checked = true;
-
-      // Attach listeners for mode toggle
-      document
-        .querySelectorAll('input[name="mode"]')
-        .forEach(input => {
-          input.addEventListener('change', (e) => {
-            setMode(e.target.value);
-          });
-        });
-
-      // Login button handler
+      updateModeChip();
       document.getElementById('login-btn').addEventListener('click', async () => {
         clearMessages();
         const username = document.getElementById('username-input').value.trim();
-        if (!username) {
-          showError('Please enter a username.');
-          return;
-        }
+        if (!username) { showError('Please enter a username.'); return; }
         try {
-          const data = await fetchJSON('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
-          });
-          if (!data.success) {
-            showError(data.message || 'Login failed.');
-            return;
-          }
+          // send { user: ... } to match server expectation
+          const data = await fetchJSON('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: username }) });
+          if (!data.success) { showError(data.message || 'Login failed.'); return; }
           setCurrentUser(username);
           showMessage(data.message || `User ${username} loaded.`);
           await loadAllData();
-        } catch (err) {
-          showError(err.message);
-        }
+        } catch (err) { showError(err.message || String(err)); }
       });
 
-      // Restore saved user if exists
       const savedUser = localStorage.getItem('username');
-      if (savedUser) {
-        setCurrentUser(savedUser);
-        document.getElementById('username-input').value = savedUser;
-        loadAllData().catch(err => {
-          console.error(err);
-        });
-      }
-
-      // CHECK LIVE ENDPOINT (Option B) - called after savedUser restoration
-      checkLiveEndpoint();
-
-      // Default section
+      if (savedUser) { setCurrentUser(savedUser); document.getElementById('username-input').value = savedUser; loadAllData().catch(console.error); }
       showSection('trade');
     });
   </script>
