@@ -1,5 +1,30 @@
 {
-  "cash": 10000.0,
-  "holdings": {},
-  "trade_history": []
+  "cash": 9800.0,
+  "holdings": {
+    "ABC": 1,
+    "XYZ": 2
+  },
+  "trade_history": [
+    {
+      "date": "2025-11-21",
+      "type": "BUY",
+      "symbol": "ABC",
+      "qty": 1,
+      "price": 100.0
+    },
+    {
+      "date": "2025-11-21",
+      "type": "BUY",
+      "symbol": "XYZ",
+      "qty": 1,
+      "price": 50.0
+    },
+    {
+      "date": "2025-11-21",
+      "type": "BUY",
+      "symbol": "XYZ",
+      "qty": 1,
+      "price": 50.0
+    }
+  ]
 }
