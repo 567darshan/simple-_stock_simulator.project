@@ -5,7 +5,6 @@ A clean and interactive stock trading simulator that lets users practice buying,
 ## 🚀 Features
 
 * **Buy & Sell Stocks** with instant portfolio updates
-* **Live Mode & Test Mode** switching
 * **Auto-updating Ticker** display
 * **Portfolio Summary** with invested capital, profit/loss, and performance
 * **Trade History** with CSV export
@@ -23,9 +22,9 @@ simple_stock_simulator.project/
 ├── static/
 │   ├── style.css
 │   ├── script.js
-│   └── assets/
-├── templates/
 │   └── index.html
+├── trading.py
+├── main.py
 ├── app.py
 ├── requirements.txt
 └── README.md
@@ -38,13 +37,6 @@ simple_stock_simulator.project/
 ```
 git clone https://github.com/567darshan/simple-_stock_simulator.project.git
 cd simple-_stock_simulator.project
-```
-
-### 2. Create virtual environment
-
-```
-python -m venv venv
-venv\Scripts\activate       # Windows
 ```
 
 ### 3. Install dependencies
@@ -62,7 +54,7 @@ python app.py
 Open in browser:
 
 ```
-http://127.0.0.1:5000
+http://127.0.0.1:5001
 ```
 
 ## 📡 API Endpoints
@@ -86,10 +78,10 @@ http://127.0.0.1:5000
 
 ## 👨‍💻 Contributors
 
-* **Hardik Gowda** – Developer
-* **Darshan** – Frontend/UI Contributor
+* **Hardik K M** – Backend Developer
+* **Darshan A** – Frontend/UI Contributor
 
-"Designed by Hardikgowda"
+"Designed by Hardik K M & Darshan A"
 
 ## ⭐ Future Enhancements
 
